@@ -1,4 +1,3 @@
-mod models;
 pub mod persist;
 
 use crate::persist::Persist;

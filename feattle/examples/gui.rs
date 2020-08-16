@@ -1,9 +1,6 @@
 use feattle::*;
-use feattle_sync::persist::Disk;
-use std::collections::{BTreeMap, BTreeSet};
-use std::error::Error;
-use std::sync::Arc;
-use strum::VariantNames;
+use std::thread::sleep;
+use std::time::Duration;
 
 feattle_enum! {
     CalculateMoneySupply {
@@ -39,18 +36,30 @@ feattles! {
         invert_career_ladder: f64 = 3.6,
         calculate_money_supply: CalculateMoneySupply = CalculateMoneySupply::High,
         normalize_social_network: String = "normal".to_owned(),
-        adjust_emotional_weights: BTreeSet<i32>,
-        calibrate_personality_matrix: BTreeSet<CalibratePersonalityMatrix>,
-        insert_chaos_generator: BTreeSet<String>,
-        map_influence_attributes: BTreeMap<MapInfluenceAttributes, i32>,
-        assign_mimic_propagation: BTreeMap<String, i32>,
+        adjust_emotional_weights: std::collections::BTreeSet<i32>,
+        calibrate_personality_matrix: std::collections::BTreeSet<CalibratePersonalityMatrix>,
+        insert_chaos_generator: std::collections::BTreeSet<String>,
+        map_influence_attributes: std::collections::BTreeMap<MapInfluenceAttributes, i32>,
+        assign_mimic_propagation: std::collections::BTreeMap<String, i32>,
     }
 }
 
-fn main() -> Result<(), Box<dyn Error>> {
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
+
+    use feattle_sync::persist::Disk;
+    use std::sync::Arc;
+
     let disk_storage = Disk::new("data")?;
     let features = Arc::new(Features::new());
     BackgroundSync::new(disk_storage, &features).spawn();
     dbg!(features.definitions());
+    dbg!(features.last_update());
+    dbg!(features.current_version());
+
+    sleep(Duration::from_secs(1));
+    dbg!(features.last_update());
+    dbg!(features.current_version());
+
     Ok(())
 }

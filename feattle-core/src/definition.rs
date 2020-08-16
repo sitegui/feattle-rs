@@ -1,3 +1,4 @@
+use chrono::{DateTime, Utc};
 use serde_json::Value;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -24,4 +25,7 @@ pub struct FeatureDefinition {
     pub description: String,
     pub format: SerializedFormat,
     pub value: Value,
+    pub default: Value,
+    pub modified_at: Option<DateTime<Utc>>,
+    pub modified_by: Option<String>,
 }

@@ -11,10 +11,10 @@ use uuid::Uuid;
 macro_rules! feattle_enum {
     ($key:ident { $($variant:ident),* $(,)? }) => {
         #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
-        #[derive($crate::deps::EnumString)]
-        #[derive($crate::deps::EnumVariantNames)]
-        #[derive($crate::deps::Display)]
-        enum $key { $($variant),* }
+        #[derive($crate::__deps::EnumString)]
+        #[derive($crate::__deps::EnumVariantNames)]
+        #[derive($crate::__deps::Display)]
+        pub enum $key { $($variant),* }
 
         impl FeattleStringValue for $key {
             fn serialized_string_format() -> StringFormat {
