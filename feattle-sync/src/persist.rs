@@ -1,5 +1,4 @@
-use feattle_core::models::{CurrentValues, ValueHistory};
-use feattle_core::persist::Persist;
+use feattle_core::persist::{CurrentValues, Persist, ValueHistory};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::error::Error;

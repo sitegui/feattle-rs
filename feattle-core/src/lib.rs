@@ -1,32 +1,75 @@
-#[doc(hidden)]
-pub mod __deps;
 mod definition;
 mod feattle_value;
-pub mod models;
+pub mod json_reading;
+pub mod macros;
 pub mod persist;
 
-use crate::models::CurrentValues;
+use crate::json_reading::FromJsonError;
+use crate::persist::{CurrentValue, CurrentValues, Persist};
 use chrono::{DateTime, Utc};
 pub use definition::*;
 pub use feattle_value::*;
-use parking_lot::MappedRwLockReadGuard;
+use parking_lot::{MappedRwLockReadGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use serde_json::Value;
 use std::error::Error;
 pub use strum::VariantNames;
+use thiserror::Error;
 
-#[derive(Debug, Clone)]
-pub struct InnerFeattle<T> {
-    pub key: &'static str,
-    pub description: String,
-    pub value: T,
-    pub default: T,
-    pub modified_at: Option<DateTime<Utc>>,
-    pub modified_by: Option<String>,
+#[derive(Debug)]
+pub struct FeattlesImpl<P, FS> {
+    persistence: P,
+    inner_feattles: RwLock<InnerFeattles<FS>>,
 }
 
-impl<T: Clone + FeattleValue> InnerFeattle<T> {
-    pub fn new(key: &'static str, description: String, default: T) -> Self {
-        InnerFeattle {
+#[derive(Debug, Clone)]
+pub struct InnerFeattles<FS> {
+    last_reload: Option<DateTime<Utc>>,
+    current_values: Option<CurrentValues>,
+    feattles_struct: FS,
+}
+
+#[derive(Debug, Clone)]
+pub struct Feature<T> {
+    key: &'static str,
+    description: &'static str,
+    value: T,
+    default: T,
+    modified_at: Option<DateTime<Utc>>,
+    modified_by: Option<String>,
+}
+
+#[derive(Error, Debug)]
+pub enum UpdateError {
+    #[error("cannot update because current values were never successfully loaded from the persist layer")]
+    NeverReloaded,
+    #[error("the key {0} is unknown")]
+    UnknownKey(String),
+    #[error(transparent)]
+    FailedParsing(#[from] FromJsonError),
+    #[error("failed to persist new state")]
+    FailedPersistence(#[source] Box<dyn Error>),
+}
+
+pub trait __FeaturesStruct {
+    fn __update(&mut self, key: &str, value: &CurrentValue) -> Result<(), FromJsonError>;
+}
+
+impl<P, FS> FeattlesImpl<P, FS> {
+    fn new(persistence: P, feattles_struct: FS) -> Self {
+        FeattlesImpl {
+            persistence,
+            inner_feattles: RwLock::new(InnerFeattles {
+                last_reload: None,
+                current_values: None,
+                feattles_struct,
+            }),
+        }
+    }
+}
+
+impl<T: Clone + FeattleValue> Feature<T> {
+    pub fn new(key: &'static str, description: &'static str, default: T) -> Self {
+        Feature {
             key,
             description,
             value: default.clone(),
@@ -39,7 +82,7 @@ impl<T: Clone + FeattleValue> InnerFeattle<T> {
     pub fn as_definition(&self) -> FeatureDefinition {
         FeatureDefinition {
             key: self.key,
-            description: self.description.clone(),
+            description: self.description.to_owned(),
             format: T::serialized_format(),
             value: self.value.as_json(),
             default: self.default.as_json(),
@@ -47,171 +90,106 @@ impl<T: Clone + FeattleValue> InnerFeattle<T> {
             modified_by: self.modified_by.clone(),
         }
     }
-}
 
-#[macro_export]
-macro_rules! __init_field {
-    ($default:expr) => {
-        $default
-    };
-    () => {
-        Default::default()
-    };
-}
-
-pub trait Feattles<P>: Send + Sync + 'static {
-    fn new(persistence: P) -> Self;
-    fn last_reload(&self) -> Option<DateTime<Utc>>;
-    fn current_values(&self) -> MappedRwLockReadGuard<Option<CurrentValues>>;
-    fn persistence(&self) -> &P;
-
-    fn keys(&self) -> &'static [&'static str];
-    fn reload(&self) -> Result<(), Box<dyn Error>>;
-    fn update(&self, key: &str, value: Value) -> Result<(), Box<dyn Error>>;
-
-    fn definition(&self, key: &str) -> Option<FeatureDefinition>;
-    fn definitions(&self) -> Vec<FeatureDefinition>;
-}
-
-#[macro_export]
-macro_rules! feattles {
-    (
-    $name:ident {
-        $(
-            $(#[doc=$description:tt])*
-            $key:ident: $type:ty $(= $default:expr)?
-        ),*
-        $(,)?
+    pub fn update(&mut self, value: &CurrentValue) -> Result<(), FromJsonError> {
+        self.value = FeattleValue::try_from_json(&value.value)?;
+        self.modified_at = Some(value.modified_at);
+        self.modified_by = Some(value.modified_by.clone());
+        Ok(())
     }
-    ) => {
-        mod __inner_feattles {
-            use super::*;
+}
 
-            #[derive(Debug, Clone)]
-            pub struct InnerFeattles {
-                pub __last_reload: Option<$crate::__deps::DateTime<$crate::__deps::Utc>>,
-                pub __current_values: Option<$crate::models::CurrentValues>,
-                $(
-                    pub $key: $crate::InnerFeattle<$type>
-                ),*
-            }
+pub trait Feattles<P: Persist>: Send + Sync + 'static {
+    type FeatureStruct: __FeaturesStruct;
+    fn _read(&self) -> RwLockReadGuard<InnerFeattles<Self::FeatureStruct>>;
+    fn _write(&self) -> RwLockWriteGuard<InnerFeattles<Self::FeatureStruct>>;
+    fn new(persistence: P) -> Self;
+    fn persistence(&self) -> &P;
+    fn keys(&self) -> &'static [&'static str];
+    fn definition(&self, key: &str) -> Option<FeatureDefinition>;
+
+    fn last_reload(&self) -> Option<DateTime<Utc>> {
+        self._read().last_reload
+    }
+
+    fn current_values(&self) -> Option<MappedRwLockReadGuard<CurrentValues>> {
+        let inner = self._read();
+        match inner.current_values.as_ref() {
+            None => None,
+            Some(_) => Some(RwLockReadGuard::map(inner, |x| {
+                x.current_values.as_ref().unwrap()
+            })),
         }
+    }
 
-        #[derive(Debug)]
-        struct $name<P> {
-            persistence: P,
-            inner: $crate::__deps::RwLock<__inner_feattles::InnerFeattles>
-        }
-
-        impl<P: $crate::persist::Persist> Feattles<P> for $name<P> {
-            fn new(persistence: P) -> Self {
-                let inner = __inner_feattles::InnerFeattles {
-                    __last_reload: None,
-                    __current_values: None,
-                    $(
-                        $key: $crate::InnerFeattle::new(
-                            stringify!($key),
-                            concat!($($description),*).trim().to_owned(),
-                            $crate::__init_field!($($default)?),
-                        )
-                    ),*
-                };
-                Self {
-                    persistence,
-                    inner: $crate::__deps::RwLock::new(inner),
-                }
+    fn reload(&self) -> Result<(), Box<dyn Error>> {
+        let current_values = self.persistence().load_current()?;
+        let mut inner = self._write();
+        let now = Utc::now();
+        inner.last_reload = Some(now);
+        match current_values {
+            None => {
+                inner.current_values = Some(CurrentValues {
+                    version: 0,
+                    date: now,
+                    features: Default::default(),
+                });
             }
-
-            fn last_reload(&self) -> Option<$crate::__deps::DateTime<$crate::__deps::Utc>> {
-                self.inner.read().__last_reload
-            }
-
-            fn current_values(&self) -> $crate::__deps::MappedRwLockReadGuard<Option<$crate::models::CurrentValues>> {
-                $crate::__deps::RwLockReadGuard::map(self.inner.read(), |inner| &inner.__current_values)
-            }
-
-            fn persistence(&self) -> &P {
-                &self.persistence
-            }
-
-            fn keys(&self) -> &'static [&'static str] {
-                &[$(
-                    stringify!($key)
-                ),*]
-            }
-
-            fn reload(&self) -> Result<(), Box<dyn ::std::error::Error>> {
-                let current_values = self.persistence.load_current()?;
-                let mut inner = self.inner.write();
-                let now = $crate::__deps::Utc::now();
-                inner.__last_reload = Some(now);
-                match current_values {
-                    None => {
-                        inner.__current_values = Some($crate::models::CurrentValues {
-                            version: 0,
-                            date: now,
-                            features: Default::default()
-                        });
-                    }
-                    Some(mut current_values) => {
-                        $(
-                            let value = current_values.features.get(stringify!($key));
-                            Self::update_single(&mut inner.$key, value, stringify!($key));
-                        )*
-                        inner.__current_values = Some(current_values);
+            Some(current_values) => {
+                for &key in self.keys() {
+                    if let Some(value) = current_values.features.get(key) {
+                        if let Err(error) = inner.feattles_struct.__update(key, value) {
+                            log::error!("Failed to update {}: {:?}", key, error);
+                        }
                     }
                 }
-                Ok(())
-            }
-
-            fn update(&self, key: &str, value: $crate::__deps::Value) -> Result<(), Box<dyn std::error::Error>> {
-                todo!()
-            }
-
-            fn definition(&self, key: &str) -> Option<$crate::FeatureDefinition> {
-                let inner = self.inner.read();
-                match key {
-                    $(
-                        stringify!($key) => Some(inner.$key.as_definition()),
-                    )*
-                    _ => None,
-                }
-            }
-
-            fn definitions(&self) -> Vec<$crate::FeatureDefinition> {
-                let inner = self.inner.read();
-                let mut features = vec![
-                    $(
-                        inner.$key.as_definition()
-                    ),*
-                ];
-                features
+                inner.current_values = Some(current_values);
             }
         }
+        Ok(())
+    }
 
-        impl<P> $name<P> {
-            $(
-                pub fn $key(&self) -> $crate::__deps::MappedRwLockReadGuard<$type> {
-                    $crate::__deps::RwLockReadGuard::map(self.inner.read(), |inner| &inner.$key.value)
-                }
-            )*
+    fn update(&self, key: &str, value: Value, modified_by: String) -> Result<(), UpdateError> {
+        // Load current state
+        let mut inner = self._write();
+        let current_values = inner
+            .current_values
+            .as_ref()
+            .ok_or(UpdateError::NeverReloaded)?;
 
-            fn update_single<T: $crate::FeattleValue>(
-                field: &mut $crate::InnerFeattle<T>,
-                value: Option<&$crate::models::CurrentValue>,
-                key: &str)
-            {
-                if let Some(value) = value {
-                    match $crate::FeattleValue::try_from_json(&value.value) {
-                        Some(x) => {
-                            field.value = x;
-                            field.modified_at = Some(value.modified_at);
-                            field.modified_by = Some(value.modified_by.clone());
-                        },
-                        None => $crate::__deps::error!("Failed to parse {}", key),
-                    }
-                }
-            }
-        }
+        // Prepare updated state
+        let mut new_values = current_values.clone();
+        let now = Utc::now();
+        new_values.version += 1;
+        new_values.date = now;
+        let feature = new_values
+            .features
+            .get_mut(key)
+            .ok_or_else(|| UpdateError::UnknownKey(key.to_owned()))?;
+        feature.modified_at = now;
+        feature.modified_by = modified_by;
+        feature.value = value;
+
+        // Update in-memory
+        inner.feattles_struct.__update(key, feature)?;
+
+        // Update persistent storage
+        self.persistence()
+            .save_current(&new_values)
+            .map_err(UpdateError::FailedPersistence)?;
+
+        inner.current_values = Some(new_values);
+
+        Ok(())
+    }
+
+    fn definitions(&self) -> Vec<FeatureDefinition> {
+        self.keys()
+            .iter()
+            .map(|&key| {
+                self.definition(key)
+                    .expect("since we iterate over the list of known keys, this should always work")
+            })
+            .collect()
     }
 }
