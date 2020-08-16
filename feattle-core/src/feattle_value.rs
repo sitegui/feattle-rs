@@ -4,6 +4,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryInto;
 use std::fmt::Debug;
 use std::str::FromStr;
+#[cfg(feature = "uuid")]
 use uuid::Uuid;
 
 #[macro_export]
@@ -117,6 +118,7 @@ impl FeattleValue for f64 {
     }
 }
 
+#[cfg(feature = "uuid")]
 impl FeattleStringValue for Uuid {
     fn serialized_string_format() -> StringFormat {
         StringFormat::Pattern(
