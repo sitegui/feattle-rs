@@ -1,7 +1,8 @@
 use crate::definition::{SerializedFormat, StringFormat};
-use serde_json::Value;
+use serde_json::{Number, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryInto;
+use std::fmt::Debug;
 use std::str::FromStr;
 use uuid::Uuid;
 
@@ -11,6 +12,7 @@ macro_rules! feattle_enum {
         #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
         #[derive($crate::deps::EnumString)]
         #[derive($crate::deps::EnumVariantNames)]
+        #[derive($crate::deps::Display)]
         enum $key { $($variant),* }
 
         impl FeattleStringValue for $key {
@@ -21,22 +23,20 @@ macro_rules! feattle_enum {
     }
 }
 
-pub trait FeattleValue
-where
-    Self: Sized,
-{
+pub trait FeattleValue: Debug + Sized {
+    fn as_json(&self) -> Value;
     fn try_from_json(value: Value) -> Option<Self>;
     fn serialized_format() -> SerializedFormat;
 }
 
-pub trait FeattleStringValue: FromStr
-where
-    Self: Sized,
-{
+pub trait FeattleStringValue: FromStr + ToString + Debug {
     fn serialized_string_format() -> StringFormat;
 }
 
 impl<T: FeattleStringValue> FeattleValue for T {
+    fn as_json(&self) -> Value {
+        Value::String(self.to_string())
+    }
     fn try_from_json(value: Value) -> Option<Self> {
         value.as_str().and_then(|s| s.parse().ok())
     }
@@ -46,6 +46,9 @@ impl<T: FeattleStringValue> FeattleValue for T {
 }
 
 impl FeattleValue for bool {
+    fn as_json(&self) -> Value {
+        Value::Bool(*self)
+    }
     fn try_from_json(value: Value) -> Option<Self> {
         value.as_bool()
     }
@@ -57,6 +60,9 @@ impl FeattleValue for bool {
 macro_rules! impl_try_from_value_i64 {
     ($kind:ty) => {
         impl FeattleValue for $kind {
+            fn as_json(&self) -> Value {
+                serde_json::to_value(*self).unwrap()
+            }
             fn try_from_json(value: Value) -> Option<Self> {
                 value.as_i64().and_then(|n| n.try_into().ok())
             }
@@ -81,6 +87,9 @@ impl_try_from_value_i64! {usize}
 impl_try_from_value_i64! {isize}
 
 impl FeattleValue for f32 {
+    fn as_json(&self) -> Value {
+        Value::Number(Number::from_f64(*self as f64).unwrap())
+    }
     fn try_from_json(value: Value) -> Option<Self> {
         value.as_f64().and_then(|n_64| {
             let n_32 = n_64 as f32;
@@ -97,6 +106,9 @@ impl FeattleValue for f32 {
 }
 
 impl FeattleValue for f64 {
+    fn as_json(&self) -> Value {
+        Value::Number(Number::from_f64(*self).unwrap())
+    }
     fn try_from_json(value: Value) -> Option<Self> {
         value.as_f64()
     }
@@ -120,6 +132,9 @@ impl FeattleStringValue for String {
 }
 
 impl<T: FeattleValue> FeattleValue for Vec<T> {
+    fn as_json(&self) -> Value {
+        Value::Array(self.iter().map(|item| item.as_json()).collect())
+    }
     fn try_from_json(value: Value) -> Option<Self> {
         match value {
             Value::Array(items) => {
@@ -138,6 +153,9 @@ impl<T: FeattleValue> FeattleValue for Vec<T> {
 }
 
 impl<T: FeattleValue + Ord> FeattleValue for BTreeSet<T> {
+    fn as_json(&self) -> Value {
+        Value::Array(self.iter().map(|item| item.as_json()).collect())
+    }
     fn try_from_json(value: Value) -> Option<Self> {
         match value {
             Value::Array(items) => {
@@ -156,6 +174,13 @@ impl<T: FeattleValue + Ord> FeattleValue for BTreeSet<T> {
 }
 
 impl<K: FeattleStringValue + Ord, V: FeattleValue> FeattleValue for BTreeMap<K, V> {
+    fn as_json(&self) -> Value {
+        Value::Object(
+            self.iter()
+                .map(|(item_key, item_value)| (item_key.to_string(), item_value.as_json()))
+                .collect(),
+        )
+    }
     fn try_from_json(value: Value) -> Option<Self> {
         match value {
             Value::Object(items) => {
@@ -173,5 +198,23 @@ impl<K: FeattleStringValue + Ord, V: FeattleValue> FeattleValue for BTreeMap<K, 
             K::serialized_string_format(),
             Box::new(V::serialized_format()),
         )
+    }
+}
+
+impl<T: FeattleValue> FeattleValue for Option<T> {
+    fn as_json(&self) -> Value {
+        match self {
+            None => Value::Null,
+            Some(inner) => inner.as_json(),
+        }
+    }
+    fn try_from_json(value: Value) -> Option<Self> {
+        match value {
+            Value::Null => None,
+            other => T::try_from_json(other).map(Some),
+        }
+    }
+    fn serialized_format() -> SerializedFormat {
+        SerializedFormat::Optional(Box::new(T::serialized_format()))
     }
 }

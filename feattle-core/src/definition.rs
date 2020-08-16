@@ -1,3 +1,5 @@
+use serde_json::Value;
+
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub enum SerializedFormat {
     Bool,
@@ -6,6 +8,7 @@ pub enum SerializedFormat {
     List(Box<SerializedFormat>),
     Set(Box<SerializedFormat>),
     Map(StringFormat, Box<SerializedFormat>),
+    Optional(Box<SerializedFormat>),
 }
 
 #[derive(Debug, Clone, Eq, PartialEq)]
@@ -15,9 +18,10 @@ pub enum StringFormat {
     Choices(&'static [&'static str]),
 }
 
-#[derive(Debug, Clone, Eq, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct FeatureDefinition {
     pub key: &'static str,
     pub description: String,
     pub format: SerializedFormat,
+    pub value: Value,
 }

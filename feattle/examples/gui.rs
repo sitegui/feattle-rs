@@ -29,15 +29,15 @@ feattle_enum! {
 
 feattles! {
     Features {
-        extrude_mesh_terrain: bool,
+        extrude_mesh_terrain: bool = true,
         /// A short description
-        balance_domestic_coefficients: i32,
+        balance_domestic_coefficients: i32 = 2,
         /// A longer, complete description, bringing attention to contentious issues surrounding
         /// this configuration and what could go wrong if misused.
-        invert_career_ladder: f64,
-        calculate_money_supply: CalculateMoneySupply,
-        reticulate_splines: Uuid,
-        normalize_social_network: String,
+        invert_career_ladder: f64 = 3.6,
+        calculate_money_supply: CalculateMoneySupply = CalculateMoneySupply::High,
+        reticulate_splines: Option<Uuid>,
+        normalize_social_network: String = "normal".to_owned(),
         adjust_emotional_weights: BTreeSet<i32>,
         calibrate_personality_matrix: BTreeSet<CalibratePersonalityMatrix>,
         concatenate_vertex_nodes: BTreeSet<Uuid>,
@@ -49,5 +49,6 @@ feattles! {
 }
 
 fn main() {
-    dbg!(Features::definitions());
+    let features = Features::new();
+    dbg!(features.definitions());
 }

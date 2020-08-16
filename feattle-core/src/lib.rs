@@ -6,17 +6,15 @@ mod feattle_value;
 pub use definition::*;
 pub use feattle_value::*;
 
-// struct InternalStorage {
-//     extrude_mesh_terrain: RwLock<bool>,
-// }
-//
-// impl InternalStorage {
-//     read! { extrude_mesh_terrain, bool }
-//
-//     fn update(&self, mut values: BTreeMap<String, Value>) {
-//         write!(self, values, extrude_mesh_terrain);
-//     }
-// }
+#[macro_export]
+macro_rules! __init_field {
+    ($default:expr) => {
+        $default
+    };
+    () => {
+        Default::default()
+    };
+}
 
 #[macro_export]
 macro_rules! feattles {
@@ -24,11 +22,12 @@ macro_rules! feattles {
     $name:ident {
         $(
             $(#[doc=$description:tt])*
-            $key:ident: $type:ty
+            $key:ident: $type:ty $(= $default:expr)?
         ),*
         $(,)?
     }
     ) => {
+        #[derive(Debug)]
         struct $name {
             $(
                 $key: $crate::deps::RwLock<$type>
@@ -36,6 +35,14 @@ macro_rules! feattles {
         }
 
         impl $name {
+            pub fn new() -> Self {
+                Self {
+                    $(
+                        $key: $crate::deps::RwLock::new($crate::__init_field!($($default)?))
+                    ),*
+                }
+            }
+
             $(
                 pub fn $key(&self) -> $crate::deps::RwLockReadGuard<$type> {
                     self.$key.read()
@@ -57,13 +64,14 @@ macro_rules! feattles {
                 }
             }
 
-            fn definitions() -> Vec<$crate::FeatureDefinition> {
+            fn definitions(&self) -> Vec<$crate::FeatureDefinition> {
                 let mut features = vec![];
                 $(
                     features.push($crate::FeatureDefinition {
                         key: stringify!($key),
                         description: concat!($($description),*).trim().to_owned(),
-                        format: <$type>::serialized_format()
+                        format: <$type>::serialized_format(),
+                        value: self.$key.read().as_json()
                     });
                 )*
                 features
