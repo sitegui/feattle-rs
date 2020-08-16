@@ -25,9 +25,17 @@ dependencies = [
 name = "feattle"
 version = "0.1.0"
 dependencies = [
+ "feattle-core",
+ "strum",
+ "uuid",
+]
+
+[[package]]
+name = "feattle-core"
+version = "0.1.0"
+dependencies = [
  "log",
  "parking_lot",
- "serde",
  "serde_json",
  "strum",
  "strum_macros",

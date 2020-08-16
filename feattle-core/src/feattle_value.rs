@@ -5,6 +5,22 @@ use std::convert::TryInto;
 use std::str::FromStr;
 use uuid::Uuid;
 
+#[macro_export]
+macro_rules! feattle_enum {
+    ($key:ident { $($variant:ident),* $(,)? }) => {
+        #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
+        #[derive($crate::deps::EnumString)]
+        #[derive($crate::deps::EnumVariantNames)]
+        enum $key { $($variant),* }
+
+        impl FeattleStringValue for $key {
+            fn serialized_string_format() -> StringFormat {
+                StringFormat::Choices(&$key::VARIANTS)
+            }
+        }
+    }
+}
+
 pub trait FeattleValue
 where
     Self: Sized,
