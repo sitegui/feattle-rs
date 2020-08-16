@@ -9,8 +9,11 @@ edition = "2018"
 [dependencies]
 feattle-core = { path = "../feattle-core" }
 feattle-sync = { path = "../feattle-sync" }
+feattle-ui = { path = "../feattle-ui" }
 
 [dev-dependencies]
 env_logger = "0.7.1"
 strum = "0.19.2"
+tokio = { version = "0.2.22", features = ["full"] }
 uuid = "0.8.1"
+warp = "0.2.4"

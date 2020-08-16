@@ -44,7 +44,8 @@ feattles! {
     }
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::init();
 
     use feattle_sync::persist::Disk;
@@ -60,6 +61,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     sleep(Duration::from_secs(1));
     dbg!(features.last_update());
     dbg!(features.current_version());
+
+    if *features.extrude_mesh_terrain() {
+        println!("OK");
+    }
+
+    warp::serve(ui(features.clone()))
+        .run(([127, 0, 0, 1], 3030))
+        .await;
 
     Ok(())
 }

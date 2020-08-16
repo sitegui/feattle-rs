@@ -12,19 +12,35 @@ pub use strum::VariantNames;
 
 #[derive(Debug, Clone)]
 pub struct InnerFeattle<T> {
+    pub key: &'static str,
+    pub description: String,
     pub value: T,
     pub default: T,
     pub modified_at: Option<DateTime<Utc>>,
     pub modified_by: Option<String>,
 }
 
-impl<T: Clone> InnerFeattle<T> {
-    pub fn new(default: T) -> Self {
+impl<T: Clone + FeattleValue> InnerFeattle<T> {
+    pub fn new(key: &'static str, description: String, default: T) -> Self {
         InnerFeattle {
+            key,
+            description,
             value: default.clone(),
             default,
             modified_at: None,
             modified_by: None,
+        }
+    }
+
+    pub fn as_definition(&self) -> FeatureDefinition {
+        FeatureDefinition {
+            key: self.key,
+            description: self.description.clone(),
+            format: T::serialized_format(),
+            value: self.value.as_json(),
+            default: self.default.as_json(),
+            modified_at: self.modified_at,
+            modified_by: self.modified_by.clone(),
         }
     }
 }
@@ -44,6 +60,7 @@ pub trait Feattles: Send + Sync + 'static {
     fn current_version(&self) -> Option<(i32, DateTime<Utc>)>;
     fn last_update(&self) -> Option<DateTime<Utc>>;
     fn update(&self, current_values: CurrentValues);
+    fn definition(&self, key: &str) -> Option<FeatureDefinition>;
     fn definitions(&self) -> Vec<FeatureDefinition>;
 }
 
@@ -82,7 +99,11 @@ macro_rules! feattles {
                     __current_version: None,
                     __last_update: None,
                     $(
-                        $key: $crate::InnerFeattle::new($crate::__init_field!($($default)?))
+                        $key: $crate::InnerFeattle::new(
+                            stringify!($key),
+                            concat!($($description),*).trim().to_owned(),
+                            $crate::__init_field!($($default)?),
+                        )
                     ),*
                 };
                 Self {
@@ -108,20 +129,23 @@ macro_rules! feattles {
                 )*
             }
 
+            fn definition(&self, key: &str) -> Option<$crate::FeatureDefinition> {
+                let inner = self.inner.read();
+                match key {
+                    $(
+                        stringify!($key) => Some(inner.$key.as_definition()),
+                    )*
+                    _ => None,
+                }
+            }
+
             fn definitions(&self) -> Vec<$crate::FeatureDefinition> {
                 let inner = self.inner.read();
-                let mut features = vec![];
-                $(
-                    features.push($crate::FeatureDefinition {
-                        key: stringify!($key),
-                        description: concat!($($description),*).trim().to_owned(),
-                        format: <$type>::serialized_format(),
-                        value: inner.$key.value.as_json(),
-                        default: inner.$key.default.as_json(),
-                        modified_at: inner.$key.modified_at,
-                        modified_by: inner.$key.modified_by.clone(),
-                    });
-                )*
+                let mut features = vec![
+                    $(
+                        inner.$key.as_definition()
+                    ),*
+                ];
                 features
             }
         }
