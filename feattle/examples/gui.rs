@@ -26,23 +26,23 @@ feattle_enum! {
     }
 }
 
-// feattles! {
-//     Features {
-//         extrude_mesh_terrain: bool = true,
-//         /// A short description
-//         balance_domestic_coefficients: i32 = 2,
-//         /// A longer, complete description, bringing attention to contentious issues surrounding
-//         /// this configuration and what could go wrong if misused.
-//         invert_career_ladder: f64 = 3.6,
-//         calculate_money_supply: CalculateMoneySupply = CalculateMoneySupply::High,
-//         normalize_social_network: String = "normal".to_owned(),
-//         adjust_emotional_weights: std::collections::BTreeSet<i32>,
-//         calibrate_personality_matrix: std::collections::BTreeSet<CalibratePersonalityMatrix>,
-//         insert_chaos_generator: std::collections::BTreeSet<String>,
-//         map_influence_attributes: std::collections::BTreeMap<MapInfluenceAttributes, i32>,
-//         assign_mimic_propagation: std::collections::BTreeMap<String, i32>,
-//     }
-// }
+feattles! {
+    Features {
+        extrude_mesh_terrain: bool = true,
+        /// A short description
+        balance_domestic_coefficients: i32 = 2,
+        /// A longer, complete description, bringing attention to contentious issues surrounding
+        /// this configuration and what could go wrong if misused.
+        invert_career_ladder: f64 = 3.6,
+        calculate_money_supply: CalculateMoneySupply = CalculateMoneySupply::High,
+        normalize_social_network: String = "normal".to_owned(),
+        adjust_emotional_weights: std::collections::BTreeSet<i32>,
+        calibrate_personality_matrix: std::collections::BTreeSet<CalibratePersonalityMatrix>,
+        insert_chaos_generator: std::collections::BTreeSet<String>,
+        map_influence_attributes: std::collections::BTreeMap<MapInfluenceAttributes, i32>,
+        assign_mimic_propagation: std::collections::BTreeMap<String, i32>,
+    }
+}
 
 pub mod gui {
     use feattle_core::__internal;
@@ -122,8 +122,6 @@ pub mod gui {
         }
     }
 }
-
-type Features<P> = gui::Gui<P>;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
