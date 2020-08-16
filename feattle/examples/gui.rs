@@ -28,9 +28,12 @@ feattle_enum! {
 }
 
 feattles! {
-    InternalStorage {
+    Features {
         extrude_mesh_terrain: bool,
+        /// A short description
         balance_domestic_coefficients: i32,
+        /// A longer, complete description, bringing attention to contentious issues surrounding
+        /// this configuration and what could go wrong if misused.
         invert_career_ladder: f64,
         calculate_money_supply: CalculateMoneySupply,
         reticulate_splines: Uuid,
@@ -46,5 +49,5 @@ feattles! {
 }
 
 fn main() {
-    println!("Hello, world!");
+    dbg!(Features::definitions());
 }

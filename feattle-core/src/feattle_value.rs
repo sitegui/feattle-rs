@@ -1,4 +1,4 @@
-use crate::reflection::{SerializedFormat, StringFormat};
+use crate::definition::{SerializedFormat, StringFormat};
 use serde_json::Value;
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryInto;

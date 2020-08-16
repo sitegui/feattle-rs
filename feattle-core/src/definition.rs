@@ -1,3 +1,4 @@
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum SerializedFormat {
     Bool,
     Number,
@@ -7,14 +8,16 @@ pub enum SerializedFormat {
     Map(StringFormat, Box<SerializedFormat>),
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub enum StringFormat {
     Any,
     Pattern(&'static str),
     Choices(&'static [&'static str]),
 }
 
-pub struct FeatureDefinition<T: Clone> {
-    pub key: String,
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct FeatureDefinition {
+    pub key: &'static str,
     pub description: String,
-    pub default: T,
+    pub format: SerializedFormat,
 }
