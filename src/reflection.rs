@@ -1,11 +1,20 @@
-pub enum KindFamily {
+pub enum SerializedFormat {
     Bool,
     Number,
-    String,
-    Complex,
+    String(StringFormat),
+    List(Box<SerializedFormat>),
+    Set(Box<SerializedFormat>),
+    Map(StringFormat, Box<SerializedFormat>),
 }
 
-pub struct FeatureDefinition {
-    key: String,
-    description: String,
+pub enum StringFormat {
+    Any,
+    Pattern(&'static str),
+    Choices(&'static [&'static str]),
+}
+
+pub struct FeatureDefinition<T: Clone> {
+    pub key: String,
+    pub description: String,
+    pub default: T,
 }
