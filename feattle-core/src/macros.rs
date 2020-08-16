@@ -1,18 +1,10 @@
-mod __deps {
-    pub use chrono::{DateTime, Utc};
-    pub use log::error;
-    pub use parking_lot::{MappedRwLockReadGuard, RwLock, RwLockReadGuard};
-    pub use serde_json::Value;
-    pub use strum_macros::{Display, EnumString, EnumVariantNames};
-}
-
 #[macro_export]
 macro_rules! feattle_enum {
     ($key:ident { $($variant:ident),* $(,)? }) => {
         #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
-        #[derive($crate::__deps::EnumString)]
-        #[derive($crate::__deps::EnumVariantNames)]
-        #[derive($crate::__deps::Display)]
+        #[derive($crate::__internal::EnumString)]
+        #[derive($crate::__internal::EnumVariantNames)]
+        #[derive($crate::__internal::Display)]
         pub enum $key { $($variant),* }
 
         impl $crate::FeattleStringValue for $key {

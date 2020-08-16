@@ -1,42 +1,21 @@
+pub mod __internal;
 mod definition;
 mod feattle_value;
 pub mod json_reading;
 pub mod macros;
 pub mod persist;
 
+use crate::__internal::{FeaturesStruct, InnerFeattles};
 use crate::json_reading::FromJsonError;
-use crate::persist::{CurrentValue, CurrentValues, Persist};
+use crate::persist::{CurrentValues, Persist};
 use chrono::{DateTime, Utc};
 pub use definition::*;
 pub use feattle_value::*;
-use parking_lot::{MappedRwLockReadGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use parking_lot::{MappedRwLockReadGuard, RwLockReadGuard, RwLockWriteGuard};
 use serde_json::Value;
 use std::error::Error;
 pub use strum::VariantNames;
 use thiserror::Error;
-
-#[derive(Debug)]
-pub struct FeattlesImpl<P, FS> {
-    persistence: P,
-    inner_feattles: RwLock<InnerFeattles<FS>>,
-}
-
-#[derive(Debug, Clone)]
-pub struct InnerFeattles<FS> {
-    last_reload: Option<DateTime<Utc>>,
-    current_values: Option<CurrentValues>,
-    feattles_struct: FS,
-}
-
-#[derive(Debug, Clone)]
-pub struct Feature<T> {
-    key: &'static str,
-    description: &'static str,
-    value: T,
-    default: T,
-    modified_at: Option<DateTime<Utc>>,
-    modified_by: Option<String>,
-}
 
 #[derive(Error, Debug)]
 pub enum UpdateError {
@@ -50,57 +29,8 @@ pub enum UpdateError {
     FailedPersistence(#[source] Box<dyn Error>),
 }
 
-pub trait __FeaturesStruct {
-    fn __update(&mut self, key: &str, value: &CurrentValue) -> Result<(), FromJsonError>;
-}
-
-impl<P, FS> FeattlesImpl<P, FS> {
-    fn new(persistence: P, feattles_struct: FS) -> Self {
-        FeattlesImpl {
-            persistence,
-            inner_feattles: RwLock::new(InnerFeattles {
-                last_reload: None,
-                current_values: None,
-                feattles_struct,
-            }),
-        }
-    }
-}
-
-impl<T: Clone + FeattleValue> Feature<T> {
-    pub fn new(key: &'static str, description: &'static str, default: T) -> Self {
-        Feature {
-            key,
-            description,
-            value: default.clone(),
-            default,
-            modified_at: None,
-            modified_by: None,
-        }
-    }
-
-    pub fn as_definition(&self) -> FeatureDefinition {
-        FeatureDefinition {
-            key: self.key,
-            description: self.description.to_owned(),
-            format: T::serialized_format(),
-            value: self.value.as_json(),
-            default: self.default.as_json(),
-            modified_at: self.modified_at,
-            modified_by: self.modified_by.clone(),
-        }
-    }
-
-    pub fn update(&mut self, value: &CurrentValue) -> Result<(), FromJsonError> {
-        self.value = FeattleValue::try_from_json(&value.value)?;
-        self.modified_at = Some(value.modified_at);
-        self.modified_by = Some(value.modified_by.clone());
-        Ok(())
-    }
-}
-
 pub trait Feattles<P: Persist>: Send + Sync + 'static {
-    type FeatureStruct: __FeaturesStruct;
+    type FeatureStruct: FeaturesStruct;
     fn _read(&self) -> RwLockReadGuard<InnerFeattles<Self::FeatureStruct>>;
     fn _write(&self) -> RwLockWriteGuard<InnerFeattles<Self::FeatureStruct>>;
     fn new(persistence: P) -> Self;
@@ -138,7 +68,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
             Some(current_values) => {
                 for &key in self.keys() {
                     if let Some(value) = current_values.features.get(key) {
-                        if let Err(error) = inner.feattles_struct.__update(key, value) {
+                        if let Err(error) = inner.feattles_struct.update(key, value) {
                             log::error!("Failed to update {}: {:?}", key, error);
                         }
                     }
@@ -171,7 +101,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
         feature.value = value;
 
         // Update in-memory
-        inner.feattles_struct.__update(key, feature)?;
+        inner.feattles_struct.update(key, feature)?;
 
         // Update persistent storage
         self.persistence()

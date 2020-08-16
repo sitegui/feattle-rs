@@ -1,5 +1,4 @@
 use feattle::*;
-use feattle_core::gui::Gui;
 use std::thread::sleep;
 use std::time::Duration;
 
@@ -46,14 +45,19 @@ feattle_enum! {
 // }
 
 pub mod gui {
+    use feattle_core::__internal;
 
-    pub struct Gui<P>(FeattlesImpl<P, __Features>);
+    pub struct Gui<P>(__internal::FeattlesImpl<P, __Features>);
     pub struct __Features {
-        extrude_mesh_terrain: Feature<bool>,
+        extrude_mesh_terrain: __internal::Feature<bool>,
     }
 
-    impl __FeaturesStruct for __Features {
-        fn __update(&mut self, key: &str, value: &CurrentValue) -> Result<(), FromJsonError> {
+    impl __internal::FeaturesStruct for __Features {
+        fn update(
+            &mut self,
+            key: &str,
+            value: &__internal::CurrentValue,
+        ) -> Result<(), __internal::FromJsonError> {
             match key {
                 "extrude_mesh_terrain" => self.extrude_mesh_terrain.update(value),
                 _ => unreachable!(),
@@ -61,22 +65,32 @@ pub mod gui {
         }
     }
 
-    impl<P: Persist> Feattles<P> for Gui<P> {
+    impl<P: __internal::Persist> __internal::Feattles<P> for Gui<P> {
         type FeatureStruct = __Features;
 
-        fn _read(&self) -> RwLockReadGuard<'_, InnerFeattles<Self::FeatureStruct>> {
+        fn _read(
+            &self,
+        ) -> __internal::RwLockReadGuard<'_, __internal::InnerFeattles<Self::FeatureStruct>>
+        {
             self.0.inner_feattles.read()
         }
 
-        fn _write(&self) -> RwLockWriteGuard<'_, InnerFeattles<Self::FeatureStruct>> {
+        fn _write(
+            &self,
+        ) -> __internal::RwLockWriteGuard<'_, __internal::InnerFeattles<Self::FeatureStruct>>
+        {
             self.0.inner_feattles.write()
         }
 
         fn new(persistence: P) -> Self {
-            Gui(FeattlesImpl::new(
+            Gui(__internal::FeattlesImpl::new(
                 persistence,
                 __Features {
-                    extrude_mesh_terrain: Feature::new("extrude_mesh_terrain", "", true),
+                    extrude_mesh_terrain: __internal::Feature::new(
+                        "extrude_mesh_terrain",
+                        "",
+                        true,
+                    ),
                 },
             ))
         }
@@ -89,21 +103,27 @@ pub mod gui {
             &["extrude_mesh_terrain"]
         }
 
-        fn definition(&self, key: &str) -> Option<FeatureDefinition> {
-            unimplemented!()
+        fn definition(&self, key: &str) -> Option<__internal::FeatureDefinition> {
+            let inner = self._read();
+            match key {
+                "extrude_mesh_terrain" => {
+                    Some(inner.feattles_struct.extrude_mesh_terrain.definition())
+                }
+                _ => None,
+            }
         }
     }
 
-    impl<P> Gui<P> {
-        fn extrude_mesh_terrain(&self) -> MappedRwLockReadGuard<bool> {
-            RwLockReadGuard::map(self.0.inner_feattles.read(), |inner| {
+    impl<P: __internal::Persist> Gui<P> {
+        pub fn extrude_mesh_terrain(&self) -> __internal::MappedRwLockReadGuard<bool> {
+            __internal::RwLockReadGuard::map(self.0.inner_feattles.read(), |inner| {
                 &inner.feattles_struct.extrude_mesh_terrain.value
             })
         }
     }
 }
 
-type Features<P> = Gui<P>;
+type Features<P> = gui::Gui<P>;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {

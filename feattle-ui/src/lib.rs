@@ -1,3 +1,4 @@
+use feattle_core::persist::Persist;
 use feattle_core::Feattles;
 use serde::Deserialize;
 use serde_json::Value;
@@ -9,7 +10,7 @@ struct EditFeatureForm {
     value: Value,
 }
 
-pub fn ui<P>(
+pub fn ui<P: Persist>(
     feattles: Arc<impl Feattles<P>>,
 ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
     let list_features = {
