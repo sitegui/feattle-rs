@@ -1,2 +1,2 @@
 [workspace]
-members = ["feattle", "feattle-core"]
+members = ["feattle", "feattle-core", "feattle-sync"]

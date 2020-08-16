@@ -1,5 +1,8 @@
 use feattle::*;
+use feattle_sync::persist::Disk;
 use std::collections::{BTreeMap, BTreeSet};
+use std::error::Error;
+use std::sync::Arc;
 use strum::VariantNames;
 
 feattle_enum! {
@@ -44,7 +47,10 @@ feattles! {
     }
 }
 
-fn main() {
-    let features = Features::new();
+fn main() -> Result<(), Box<dyn Error>> {
+    let disk_storage = Disk::new("data")?;
+    let features = Arc::new(Features::new());
+    BackgroundSync::new(disk_storage, &features).spawn();
     dbg!(features.definitions());
+    Ok(())
 }

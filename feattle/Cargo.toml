@@ -8,6 +8,7 @@ edition = "2018"
 
 [dependencies]
 feattle-core = { path = "../feattle-core" }
+feattle-sync = { path = "../feattle-sync" }
 
 [dev-dependencies]
 uuid = "0.8.1"
