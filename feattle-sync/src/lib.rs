@@ -1,24 +1,22 @@
 pub mod persist;
 
-use crate::persist::Persist;
+use feattle_core::persist::Persist;
 use feattle_core::Feattles;
 use std::sync::{Arc, Weak};
 use std::thread::{sleep, spawn, JoinHandle};
 use std::time::Duration;
 
-pub struct BackgroundSync<P, F> {
+pub struct BackgroundSync<F> {
     ok_interval: Duration,
     err_interval: Duration,
-    persist: P,
     feattles: Weak<F>,
 }
 
-impl<P: Persist, F: Feattles> BackgroundSync<P, F> {
-    pub fn new(persist: P, feattles: &Arc<F>) -> Self {
+impl<F> BackgroundSync<F> {
+    pub fn new(feattles: &Arc<F>) -> Self {
         BackgroundSync {
             ok_interval: Duration::from_secs(30),
             err_interval: Duration::from_secs(30),
-            persist,
             feattles: Arc::downgrade(feattles),
         }
     }
@@ -39,12 +37,15 @@ impl<P: Persist, F: Feattles> BackgroundSync<P, F> {
         self
     }
 
-    pub fn spawn(self) -> JoinHandle<()> {
+    pub fn spawn<P>(self) -> JoinHandle<()>
+    where
+        F: Feattles<P>,
+        P: Persist,
+    {
         spawn(move || {
             while let Some(feattles) = self.feattles.upgrade() {
-                match self.persist.load("current".to_owned()) {
-                    Ok(value) => {
-                        feattles.update(value);
+                match feattles.reload() {
+                    Ok(()) => {
                         log::debug!("Feattles updated");
                         sleep(self.ok_interval);
                     }

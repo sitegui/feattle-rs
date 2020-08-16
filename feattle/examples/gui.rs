@@ -52,15 +52,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     use std::sync::Arc;
 
     let disk_storage = Disk::new("data")?;
-    let features = Arc::new(Features::new());
-    BackgroundSync::new(disk_storage, &features).spawn();
+    let features = Arc::new(Features::new(disk_storage));
+    BackgroundSync::new(&features).spawn();
     dbg!(features.definitions());
-    dbg!(features.last_update());
-    dbg!(features.current_version());
+    dbg!(features.last_reload());
+    dbg!(features.current_values());
 
     sleep(Duration::from_secs(1));
-    dbg!(features.last_update());
-    dbg!(features.current_version());
+    dbg!(features.last_reload());
+    dbg!(features.current_values());
 
     if *features.extrude_mesh_terrain() {
         println!("OK");

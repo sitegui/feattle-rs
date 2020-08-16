@@ -16,3 +16,8 @@ pub struct CurrentValue {
     pub modified_by: String,
     pub value: Value,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ValueHistory {
+    pub entries: Vec<CurrentValue>,
+}

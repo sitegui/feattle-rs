@@ -218,6 +218,8 @@ name = "feattle-ui"
 version = "0.1.0"
 dependencies = [
  "feattle-core",
+ "serde",
+ "serde_json",
  "warp",
 ]
 

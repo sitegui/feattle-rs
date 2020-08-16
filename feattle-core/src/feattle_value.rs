@@ -26,7 +26,7 @@ macro_rules! feattle_enum {
 
 pub trait FeattleValue: Debug + Sized {
     fn as_json(&self) -> Value;
-    fn try_from_json(value: Value) -> Option<Self>;
+    fn try_from_json(value: &Value) -> Option<Self>;
     fn serialized_format() -> SerializedFormat;
 }
 
@@ -38,7 +38,7 @@ impl<T: FeattleStringValue> FeattleValue for T {
     fn as_json(&self) -> Value {
         Value::String(self.to_string())
     }
-    fn try_from_json(value: Value) -> Option<Self> {
+    fn try_from_json(value: &Value) -> Option<Self> {
         value.as_str().and_then(|s| s.parse().ok())
     }
     fn serialized_format() -> SerializedFormat {
@@ -50,7 +50,7 @@ impl FeattleValue for bool {
     fn as_json(&self) -> Value {
         Value::Bool(*self)
     }
-    fn try_from_json(value: Value) -> Option<Self> {
+    fn try_from_json(value: &Value) -> Option<Self> {
         value.as_bool()
     }
     fn serialized_format() -> SerializedFormat {
@@ -64,7 +64,7 @@ macro_rules! impl_try_from_value_i64 {
             fn as_json(&self) -> Value {
                 serde_json::to_value(*self).unwrap()
             }
-            fn try_from_json(value: Value) -> Option<Self> {
+            fn try_from_json(value: &Value) -> Option<Self> {
                 value.as_i64().and_then(|n| n.try_into().ok())
             }
             fn serialized_format() -> SerializedFormat {
@@ -91,7 +91,7 @@ impl FeattleValue for f32 {
     fn as_json(&self) -> Value {
         Value::Number(Number::from_f64(*self as f64).unwrap())
     }
-    fn try_from_json(value: Value) -> Option<Self> {
+    fn try_from_json(value: &Value) -> Option<Self> {
         value.as_f64().and_then(|n_64| {
             let n_32 = n_64 as f32;
             if n_64 != n_32 as f64 {
@@ -110,7 +110,7 @@ impl FeattleValue for f64 {
     fn as_json(&self) -> Value {
         Value::Number(Number::from_f64(*self).unwrap())
     }
-    fn try_from_json(value: Value) -> Option<Self> {
+    fn try_from_json(value: &Value) -> Option<Self> {
         value.as_f64()
     }
     fn serialized_format() -> SerializedFormat {
@@ -137,7 +137,7 @@ impl<T: FeattleValue> FeattleValue for Vec<T> {
     fn as_json(&self) -> Value {
         Value::Array(self.iter().map(|item| item.as_json()).collect())
     }
-    fn try_from_json(value: Value) -> Option<Self> {
+    fn try_from_json(value: &Value) -> Option<Self> {
         match value {
             Value::Array(items) => {
                 let mut list = Vec::new();
@@ -158,7 +158,7 @@ impl<T: FeattleValue + Ord> FeattleValue for BTreeSet<T> {
     fn as_json(&self) -> Value {
         Value::Array(self.iter().map(|item| item.as_json()).collect())
     }
-    fn try_from_json(value: Value) -> Option<Self> {
+    fn try_from_json(value: &Value) -> Option<Self> {
         match value {
             Value::Array(items) => {
                 let mut set = BTreeSet::new();
@@ -183,7 +183,7 @@ impl<K: FeattleStringValue + Ord, V: FeattleValue> FeattleValue for BTreeMap<K, 
                 .collect(),
         )
     }
-    fn try_from_json(value: Value) -> Option<Self> {
+    fn try_from_json(value: &Value) -> Option<Self> {
         match value {
             Value::Object(items) => {
                 let mut map = BTreeMap::new();
@@ -210,7 +210,7 @@ impl<T: FeattleValue> FeattleValue for Option<T> {
             Some(inner) => inner.as_json(),
         }
     }
-    fn try_from_json(value: Value) -> Option<Self> {
+    fn try_from_json(value: &Value) -> Option<Self> {
         match value {
             Value::Null => None,
             other => T::try_from_json(other).map(Some),
