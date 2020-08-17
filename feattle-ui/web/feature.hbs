@@ -1,0 +1,12 @@
+{{#> layout}}
+    {{#*inline "title"}}
+        Feature {{ key }}
+    {{/inline}}
+    {{#*inline "body"}}
+        <p>Format = {{ format }}</p>
+        <form action="/feature/{{ key }}/edit" method="post">
+            <textarea name="value_json">{{ value_json }}</textarea>
+            <button type="submit">Save</button>
+        </form>
+    {{/inline}}
+{{/layout}}

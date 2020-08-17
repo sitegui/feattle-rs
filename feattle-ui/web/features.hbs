@@ -1,0 +1,23 @@
+{{#> layout}}
+  {{#*inline "title"}}
+    Features
+  {{/inline}}
+  {{#*inline "body"}}
+      <table>
+          <tr>
+              <td>Key</td>
+              <td>Description</td>
+              <td>Value</td>
+              <td>Last modification</td>
+          </tr>
+        {{#each features}}
+            <tr>
+                <td><a href="/feature/{{ this.key }}">{{ this.key }}</a></td>
+                <td>{{ this.description }}</td>
+                <td>{{ this.value_overview }}</td>
+                <td>{{ this.last_modification }}</td>
+            </tr>
+        {{/each}}
+      </table>
+  {{/inline}}
+{{/layout}}
