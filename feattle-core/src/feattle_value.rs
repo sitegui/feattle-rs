@@ -15,6 +15,7 @@ use uuid::Uuid;
 
 pub trait FeattleValue: Debug + Sized {
     fn as_json(&self) -> Value;
+    fn overview(&self) -> String;
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError>;
     fn serialized_format() -> SerializedFormat;
 }
@@ -29,6 +30,9 @@ where
 {
     fn as_json(&self) -> Value {
         Value::String(self.to_string())
+    }
+    fn overview(&self) -> String {
+        self.to_string()
     }
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
         extract_str(value)?.parse().map_err(FromJsonError::parsing)
@@ -49,6 +53,9 @@ impl FeattleValue for bool {
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
         extract_bool(value)
     }
+    fn overview(&self) -> String {
+        self.to_string()
+    }
     fn serialized_format() -> SerializedFormat {
         SerializedFormat {
             kind: SerializedFormatKind::Bool,
@@ -62,6 +69,9 @@ macro_rules! impl_try_from_value_i64 {
         impl FeattleValue for $kind {
             fn as_json(&self) -> Value {
                 serde_json::to_value(*self).unwrap()
+            }
+            fn overview(&self) -> String {
+                self.to_string()
             }
             fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
                 extract_i64(value)?
@@ -95,6 +105,9 @@ impl FeattleValue for f32 {
     fn as_json(&self) -> Value {
         Value::Number(Number::from_f64(*self as f64).unwrap())
     }
+    fn overview(&self) -> String {
+        self.to_string()
+    }
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
         let n_64 = extract_f64(value)?;
         let n_32 = n_64 as f32;
@@ -118,6 +131,9 @@ impl FeattleValue for f32 {
 impl FeattleValue for f64 {
     fn as_json(&self) -> Value {
         Value::Number(Number::from_f64(*self).unwrap())
+    }
+    fn overview(&self) -> String {
+        self.to_string()
     }
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
         extract_f64(value)
@@ -155,6 +171,9 @@ impl<T: FeattleValue> FeattleValue for Vec<T> {
     fn as_json(&self) -> Value {
         Value::Array(self.iter().map(|item| item.as_json()).collect())
     }
+    fn overview(&self) -> String {
+        format!("[{}]", iter_overview(self.iter()))
+    }
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
         let mut list = Vec::new();
         for item in extract_array(value)? {
@@ -174,6 +193,9 @@ impl<T: FeattleValue> FeattleValue for Vec<T> {
 impl<T: FeattleValue + Ord> FeattleValue for BTreeSet<T> {
     fn as_json(&self) -> Value {
         Value::Array(self.iter().map(|item| item.as_json()).collect())
+    }
+    fn overview(&self) -> String {
+        format!("[{}]", iter_overview(self.iter()))
     }
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
         let mut set = BTreeSet::new();
@@ -202,6 +224,22 @@ where
                 .collect(),
         )
     }
+    fn overview(&self) -> String {
+        // Group by key
+        let mut values_by_key: BTreeMap<_, Vec<_>> = BTreeMap::new();
+        for (key, value) in self {
+            values_by_key.entry(key).or_default().push(value);
+        }
+
+        let overview_by_key: Vec<_> = values_by_key
+            .into_iter()
+            .map(|(key, values)| {
+                format!("{}: {}", key.overview(), iter_overview(values.into_iter()))
+            })
+            .collect();
+
+        format!("{{{}}}", iter_overview(overview_by_key.iter()))
+    }
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
         let mut map = BTreeMap::new();
         for (item_key, item_value) in extract_object(value)? {
@@ -229,6 +267,12 @@ impl<T: FeattleValue> FeattleValue for Option<T> {
             Some(inner) => inner.as_json(),
         }
     }
+    fn overview(&self) -> String {
+        match self {
+            None => "None".to_owned(),
+            Some(s) => format!("Some({})", s.overview()),
+        }
+    }
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
         match value {
             Value::Null => Ok(None),
@@ -242,4 +286,22 @@ impl<T: FeattleValue> FeattleValue for Option<T> {
             tag: format!("Option<{}>", f.tag),
         }
     }
+}
+
+fn iter_overview<'a, T: FeattleValue + 'a>(iter: impl Iterator<Item = &'a T>) -> String {
+    const MAX_ITEMS: usize = 3;
+    let mut overview = String::new();
+    let mut iter = iter.enumerate();
+
+    while let Some((i, value)) = iter.next() {
+        if i == MAX_ITEMS {
+            overview += &format!(", ... {} more", iter.count() + 1);
+            break;
+        } else if i > 0 {
+            overview += ", ";
+        }
+        overview += &value.overview();
+    }
+
+    overview
 }

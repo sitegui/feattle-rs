@@ -68,6 +68,7 @@ impl<T: Clone + FeattleValue> Feature<T> {
             description: self.description.to_owned(),
             format: T::serialized_format(),
             value: self.value.as_json(),
+            value_overview: self.value.overview(),
             default: self.default.as_json(),
             modified_at: self.modified_at,
             modified_by: self.modified_by.clone(),

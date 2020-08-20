@@ -43,6 +43,7 @@ pub struct FeatureDefinition {
     pub description: String,
     pub format: SerializedFormat,
     pub value: Value,
+    pub value_overview: String,
     pub default: Value,
     pub modified_at: Option<DateTime<Utc>>,
     pub modified_by: Option<String>,

@@ -5,28 +5,18 @@
   {{#*inline "content"}}
       <h1 class="my-4">Current Values</h1>
 
-      <table class="table table-striped table-dark table-hover">
-          <thead>
-          <tr>
-              <th scope="col">Key</th>
-              <th scope="col">Description</th>
-              <th scope="col">Status</th>
-              <th scope="col">Last modification (UTC)</th>
-              <th scope="col"></th>
-          </tr>
-          </thead>
-          <tbody>
-          {{#each features}}
-              <tr>
-                  <th scope="row">{{ this.key }}<br><code>{{ this.format }}</code></th>
-                  <td>{{ this.description }}</td>
-                  <td>{{ this.value_overview }}</td>
-                  <td>{{ this.last_modification }}</td>
-                  <td><a href="/feature/{{ this.key }}" class="btn btn-primary">More</a></td>
-              </tr>
-          {{/each}}
-          </tbody>
-      </table>
+      {{#each features}}
+          <div class="my-2">
+              <h2>{{ this.key }} <a href="/feature/{{ this.key }}" class="btn btn-primary btn-sm">Edit</a></h2>
+              <p>{{ this.description }}</p>
+              <p>
+                  <strong>Type</strong>: <code>{{ this.format }}</code><br>
+                  <strong>Last modification</strong>: {{ this.last_modification }}<br>
+                  <strong>Value</strong>: <code>{{ this.value_overview }}</code>
+              </p>
+          </div>
+      {{/each}}
+      <h2></h2>
   {{/inline}}
 {{/layout}}
 
