@@ -8,8 +8,12 @@ macro_rules! feattle_enum {
         pub enum $key { $($variant),* }
 
         impl $crate::FeattleStringValue for $key {
-            fn serialized_string_format() -> StringFormat {
-                StringFormat::Choices(&$key::VARIANTS)
+            fn serialized_string_format() -> $crate::StringFormat {
+                let variants = $key::VARIANTS.join(", ");
+                $crate::StringFormat {
+                    kind: $crate::StringFormatKind::Choices(&$key::VARIANTS),
+                    tag: format!("enum {{{}}}", variants),
+                }
             }
         }
     }

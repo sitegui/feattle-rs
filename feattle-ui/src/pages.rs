@@ -40,6 +40,7 @@ impl Pages {
             .map(|definition| {
                 json!({
                     "key": definition.key,
+                    "format": definition.format.tag,
                     "description": definition.description,
                     "value_overview": "TODO",
                     "last_modification": last_modification(&definition),

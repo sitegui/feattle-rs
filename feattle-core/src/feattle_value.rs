@@ -3,6 +3,7 @@ use crate::json_reading::{
     extract_array, extract_bool, extract_f64, extract_i64, extract_object, extract_str,
     FromJsonError,
 };
+use crate::{SerializedFormatKind, StringFormatKind};
 use serde_json::{Number, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryInto;
@@ -33,7 +34,11 @@ where
         extract_str(value)?.parse().map_err(FromJsonError::parsing)
     }
     fn serialized_format() -> SerializedFormat {
-        SerializedFormat::String(Self::serialized_string_format())
+        let f = Self::serialized_string_format();
+        SerializedFormat {
+            kind: SerializedFormatKind::String(f.kind),
+            tag: f.tag,
+        }
     }
 }
 
@@ -45,7 +50,10 @@ impl FeattleValue for bool {
         extract_bool(value)
     }
     fn serialized_format() -> SerializedFormat {
-        SerializedFormat::Bool
+        SerializedFormat {
+            kind: SerializedFormatKind::Bool,
+            tag: "bool".to_owned(),
+        }
     }
 }
 
@@ -61,7 +69,10 @@ macro_rules! impl_try_from_value_i64 {
                     .map_err(FromJsonError::parsing)
             }
             fn serialized_format() -> SerializedFormat {
-                SerializedFormat::Number
+                SerializedFormat {
+                    kind: SerializedFormatKind::Number,
+                    tag: stringify!($kind).to_owned(),
+                }
             }
         }
     };
@@ -97,7 +108,10 @@ impl FeattleValue for f32 {
         }
     }
     fn serialized_format() -> SerializedFormat {
-        SerializedFormat::Number
+        SerializedFormat {
+            kind: SerializedFormatKind::Number,
+            tag: "f32".to_owned(),
+        }
     }
 }
 
@@ -109,22 +123,31 @@ impl FeattleValue for f64 {
         extract_f64(value)
     }
     fn serialized_format() -> SerializedFormat {
-        SerializedFormat::Number
+        SerializedFormat {
+            kind: SerializedFormatKind::Number,
+            tag: "f64".to_owned(),
+        }
     }
 }
 
 #[cfg(feature = "uuid")]
 impl FeattleStringValue for Uuid {
     fn serialized_string_format() -> StringFormat {
-        StringFormat::Pattern(
-            "[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}",
-        )
+        StringFormat {
+            kind: StringFormatKind::Pattern(
+                "[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}",
+            ),
+            tag: "Uuid".to_owned(),
+        }
     }
 }
 
 impl FeattleStringValue for String {
     fn serialized_string_format() -> StringFormat {
-        StringFormat::Any
+        StringFormat {
+            kind: StringFormatKind::Any,
+            tag: "String".to_owned(),
+        }
     }
 }
 
@@ -140,7 +163,11 @@ impl<T: FeattleValue> FeattleValue for Vec<T> {
         Ok(list)
     }
     fn serialized_format() -> SerializedFormat {
-        SerializedFormat::List(Box::new(T::serialized_format()))
+        let f = T::serialized_format();
+        SerializedFormat {
+            kind: SerializedFormatKind::List(Box::new(f.kind)),
+            tag: format!("Vec<{}>", f.tag),
+        }
     }
 }
 
@@ -156,7 +183,11 @@ impl<T: FeattleValue + Ord> FeattleValue for BTreeSet<T> {
         Ok(set)
     }
     fn serialized_format() -> SerializedFormat {
-        SerializedFormat::Set(Box::new(T::serialized_format()))
+        let f = T::serialized_format();
+        SerializedFormat {
+            kind: SerializedFormatKind::Set(Box::new(f.kind)),
+            tag: format!("Set<{}>", f.tag),
+        }
     }
 }
 
@@ -182,10 +213,12 @@ where
         Ok(map)
     }
     fn serialized_format() -> SerializedFormat {
-        SerializedFormat::Map(
-            K::serialized_string_format(),
-            Box::new(V::serialized_format()),
-        )
+        let fk = K::serialized_string_format();
+        let fv = V::serialized_format();
+        SerializedFormat {
+            kind: SerializedFormatKind::Map(fk.kind, Box::new(fv.kind)),
+            tag: format!("Map<{}, {}>", fk.tag, fv.tag),
+        }
     }
 }
 
@@ -203,6 +236,10 @@ impl<T: FeattleValue> FeattleValue for Option<T> {
         }
     }
     fn serialized_format() -> SerializedFormat {
-        SerializedFormat::Optional(Box::new(T::serialized_format()))
+        let f = T::serialized_format();
+        SerializedFormat {
+            kind: SerializedFormatKind::Optional(Box::new(f.kind)),
+            tag: format!("Option<{}>", f.tag),
+        }
     }
 }
