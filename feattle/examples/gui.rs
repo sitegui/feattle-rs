@@ -66,7 +66,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("OK");
     }
 
-    warp::serve(ui(features.clone()))
+    let panel = AdminPanel::new(features.clone(), "gui".to_owned());
+    warp::serve(panel.warp_filter())
         .run(([127, 0, 0, 1], 3030))
         .await;
 

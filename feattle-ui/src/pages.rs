@@ -8,19 +8,27 @@ use warp::reply::{html, Html};
 #[derive(Debug, Clone)]
 pub struct Pages {
     handlebars: Arc<Handlebars<'static>>,
+    label: String,
 }
 
 impl Pages {
-    pub fn new() -> Result<Self, Box<dyn Error>> {
+    pub fn new(label: String) -> Self {
         let mut handlebars = Handlebars::new();
 
-        handlebars.register_template_string("layout", include_str!("../web/layout.hbs"))?;
-        handlebars.register_template_string("features", include_str!("../web/features.hbs"))?;
-        handlebars.register_template_string("feature", include_str!("../web/feature.hbs"))?;
+        handlebars
+            .register_template_string("layout", include_str!("../web/layout.hbs"))
+            .expect("The handlebars template should be valid");
+        handlebars
+            .register_template_string("features", include_str!("../web/features.hbs"))
+            .expect("The handlebars template should be valid");
+        handlebars
+            .register_template_string("feature", include_str!("../web/feature.hbs"))
+            .expect("The handlebars template should be valid");
 
-        Ok(Pages {
+        Pages {
             handlebars: Arc::new(handlebars),
-        })
+            label,
+        }
     }
 
     pub fn render_features(
@@ -39,10 +47,10 @@ impl Pages {
             })
             .collect();
 
-        Ok(html(
-            self.handlebars
-                .render("features", &json!({ "features": features }))?,
-        ))
+        Ok(html(self.handlebars.render(
+            "features",
+            &json!({ "features": features, "label": self.label }),
+        )?))
     }
 
     pub fn render_feature(
@@ -62,7 +70,7 @@ impl Pages {
 
 fn last_modification(definition: &FeatureDefinition) -> String {
     match (&definition.modified_at, &definition.modified_by) {
-        (Some(at), Some(by)) => format!("{} by {}", at.format("%Y-%m-%d %H:%M:%S %Z"), by),
+        (Some(at), Some(by)) => format!("{} by {}", at.format("%Y-%m-%d %H:%M:%S"), by),
         _ => "unknown".to_owned(),
     }
 }
