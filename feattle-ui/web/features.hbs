@@ -1,22 +1,23 @@
 {{#> layout }}
-  {{#*inline "title"}}
-    Feattle - {{ label }}
-  {{/inline}}
-  {{#*inline "content"}}
-      <h1 class="my-4">Current Values</h1>
+    {{#*inline "title"}}
+        Feattle - {{ label }}
+    {{/inline}}
+    {{#*inline "content"}}
+        <h1 class="my-4">Current Values</h1>
 
-      {{#each features}}
-          <div class="my-2">
-              <h2>{{ this.key }} <a href="/feature/{{ this.key }}" class="btn btn-primary btn-sm">Edit</a></h2>
-              <p>{{ this.description }}</p>
-              <p>
-                  <strong>Type</strong>: <code>{{ this.format }}</code><br>
-                  <strong>Last modification</strong>: {{ this.last_modification }}<br>
-                  <strong>Value</strong>: <code>{{ this.value_overview }}</code>
-              </p>
-          </div>
-      {{/each}}
-      <h2></h2>
-  {{/inline}}
+        {{#each features}}
+            <div class="my-2">
+                <h2>{{ this.key }} <a href="/feature/{{ this.key }}" class="btn btn-primary btn-sm">Edit</a>
+                </h2>
+                <p>{{ this.description }}</p>
+                <p>
+                    <strong>Type</strong>: <code>{{ this.format }}</code><br>
+                    <strong>Last modification</strong>: {{ this.last_modification }}<br>
+                    <strong>Value</strong>: <code>{{ this.value_overview }}</code>
+                </p>
+            </div>
+        {{/each}}
+        <h2></h2>
+    {{/inline}}
 {{/layout}}
 

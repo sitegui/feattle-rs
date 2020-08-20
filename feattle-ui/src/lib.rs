@@ -47,9 +47,8 @@ impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
             warp::path!("feature" / String)
                 .and(warp::get())
                 .map(move |key: String| {
-                    this.pages
-                        .render_feature(this.feattles.definition(&key).unwrap())
-                        .unwrap()
+                    let definition = dbg!(this.feattles.definition(&dbg!(key))).unwrap();
+                    this.pages.render_feature(definition).unwrap()
                 })
         };
 
@@ -72,6 +71,16 @@ impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
                 })
         };
 
-        list_features.or(show_feature).or(edit_feature)
+        let public_files = {
+            let this = self.clone();
+            warp::path!("public" / String)
+                .and(warp::get())
+                .map(move |file_name: String| this.pages.render_public_file(&file_name))
+        };
+
+        list_features
+            .or(show_feature)
+            .or(edit_feature)
+            .or(public_files)
     }
 }

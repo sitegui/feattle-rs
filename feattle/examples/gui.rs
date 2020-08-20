@@ -1,6 +1,4 @@
 use feattle::*;
-use std::thread::sleep;
-use std::time::Duration;
 
 feattle_enum! {
     CalculateMoneySupply {
@@ -41,6 +39,7 @@ feattles! {
         insert_chaos_generator: std::collections::BTreeSet<String>,
         map_influence_attributes: std::collections::BTreeMap<MapInfluenceAttributes, i32>,
         assign_mimic_propagation: std::collections::BTreeMap<String, i32>,
+        blah: Option<Vec<i32>>,
     }
 }
 
@@ -54,16 +53,10 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let disk_storage = Disk::new("data")?;
     let features = Arc::new(Features::new(disk_storage));
     BackgroundSync::new(&features).spawn();
-    dbg!(features.definitions());
     dbg!(features.last_reload());
     dbg!(features.current_values());
-
-    sleep(Duration::from_secs(1));
-    dbg!(features.last_reload());
-    dbg!(features.current_values());
-
-    if *features.extrude_mesh_terrain() {
-        println!("OK");
+    for def in features.definitions() {
+        println!("{} = {}", def.key, serde_json::to_string(&def.format)?);
     }
 
     let panel = AdminPanel::new(features.clone(), "gui".to_owned());

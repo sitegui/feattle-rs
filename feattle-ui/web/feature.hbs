@@ -2,11 +2,24 @@
     {{#*inline "title"}}
         Feature {{ key }}
     {{/inline}}
-    {{#*inline "body"}}
-        <p>Format = {{ format }}</p>
-        <form action="/feature/{{ key }}/edit" method="post">
-            <textarea name="value_json">{{ value_json }}</textarea>
-            <button type="submit">Save</button>
+    {{#*inline "content"}}
+        <h1>{{ key }}</h1>
+        <p>{{ description }}</p>
+        <p>
+            <strong>Type</strong>: <code>{{ format }}</code><br>
+            <strong>Last modification</strong>: {{ last_modification }}<br>
+            <strong>Value</strong>: <code>{{ value_overview }}</code>
+        </p>
+
+        <form action="/feature/{{ key }}/edit" method="post" id="form">
+            <input name="value_json" id="value_json" type="hidden">
+            <div id="editor" data-format="{{ format_json }}" data-value="{{ value_json }}"></div>
+            <button type="submit" class="btn btn-primary">Save</button>
+            <a class="btn btn-secondary" href="/">Discard</a>
         </form>
+        <script>
+            'use strict';
+            featureEditor = new FeatureEditor($('#editor'), $('#value_json'))
+        </script>
     {{/inline}}
 {{/layout}}

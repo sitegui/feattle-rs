@@ -183,6 +183,8 @@ dependencies = [
  "feattle-core",
  "feattle-sync",
  "feattle-ui",
+ "serde",
+ "serde_json",
  "strum",
  "tokio",
  "uuid",

@@ -225,20 +225,18 @@ where
         )
     }
     fn overview(&self) -> String {
-        // Group by key
-        let mut values_by_key: BTreeMap<_, Vec<_>> = BTreeMap::new();
+        // Group by value
+        let mut keys_by_value: BTreeMap<_, Vec<_>> = BTreeMap::new();
         for (key, value) in self {
-            values_by_key.entry(key).or_default().push(value);
+            keys_by_value.entry(value.overview()).or_default().push(key);
         }
 
-        let overview_by_key: Vec<_> = values_by_key
+        let overview_by_value: Vec<_> = keys_by_value
             .into_iter()
-            .map(|(key, values)| {
-                format!("{}: {}", key.overview(), iter_overview(values.into_iter()))
-            })
+            .map(|(value, keys)| format!("{}: {}", iter_overview(keys.into_iter()), value))
             .collect();
 
-        format!("{{{}}}", iter_overview(overview_by_key.iter()))
+        format!("{{{}}}", iter_overview(overview_by_value.iter()))
     }
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
         let mut map = BTreeMap::new();

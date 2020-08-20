@@ -12,6 +12,7 @@ pub struct SerializedFormat {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[serde(tag = "tag", content = "content")]
 pub enum SerializedFormatKind {
     Bool,
     Number,
@@ -31,6 +32,7 @@ pub struct StringFormat {
 }
 
 #[derive(Debug, Clone, Eq, PartialEq, Serialize)]
+#[serde(tag = "tag", content = "content")]
 pub enum StringFormatKind {
     Any,
     Pattern(&'static str),
