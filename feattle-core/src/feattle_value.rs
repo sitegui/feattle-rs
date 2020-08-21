@@ -50,11 +50,11 @@ impl FeattleValue for bool {
     fn as_json(&self) -> Value {
         Value::Bool(*self)
     }
-    fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
-        extract_bool(value)
-    }
     fn overview(&self) -> String {
         self.to_string()
+    }
+    fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
+        extract_bool(value)
     }
     fn serialized_format() -> SerializedFormat {
         SerializedFormat {
@@ -80,7 +80,7 @@ macro_rules! impl_try_from_value_i64 {
             }
             fn serialized_format() -> SerializedFormat {
                 SerializedFormat {
-                    kind: SerializedFormatKind::Number,
+                    kind: SerializedFormatKind::Integer,
                     tag: stringify!($kind).to_owned(),
                 }
             }
@@ -122,7 +122,7 @@ impl FeattleValue for f32 {
     }
     fn serialized_format() -> SerializedFormat {
         SerializedFormat {
-            kind: SerializedFormatKind::Number,
+            kind: SerializedFormatKind::Float,
             tag: "f32".to_owned(),
         }
     }
@@ -140,7 +140,7 @@ impl FeattleValue for f64 {
     }
     fn serialized_format() -> SerializedFormat {
         SerializedFormat {
-            kind: SerializedFormatKind::Number,
+            kind: SerializedFormatKind::Float,
             tag: "f64".to_owned(),
         }
     }

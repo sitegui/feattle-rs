@@ -1,4 +1,6 @@
 use feattle::*;
+use std::collections::{BTreeMap, BTreeSet};
+use uuid::Uuid;
 
 feattle_enum! {
     CalculateMoneySupply {
@@ -26,20 +28,26 @@ feattle_enum! {
 
 feattles! {
     Features {
-        extrude_mesh_terrain: bool = true,
-        /// A short description
-        balance_domestic_coefficients: i32 = 2,
-        /// A longer, complete description, bringing attention to contentious issues surrounding
-        /// this configuration and what could go wrong if misused.
-        invert_career_ladder: f64 = 3.6,
-        calculate_money_supply: CalculateMoneySupply = CalculateMoneySupply::High,
-        normalize_social_network: String = "normal".to_owned(),
-        adjust_emotional_weights: std::collections::BTreeSet<i32>,
-        calibrate_personality_matrix: std::collections::BTreeSet<CalibratePersonalityMatrix>,
-        insert_chaos_generator: std::collections::BTreeSet<String>,
-        map_influence_attributes: std::collections::BTreeMap<MapInfluenceAttributes, i32>,
-        assign_mimic_propagation: std::collections::BTreeMap<String, i32>,
-        blah: Option<Vec<i32>>,
+        extrude_mesh_terrain: bool,
+        balance_domestic_coefficients: u8 = 1,
+        invert_career_ladder: i32 = 2,
+        concatenate_vertex_nodes: f32 = 3.4,
+        normalize_social_network: f64 = 5.6,
+        calculate_money_supply: CalculateMoneySupply = CalculateMoneySupply::Low,
+        reticulate_splines: Uuid,
+        adjust_emotional_weights: String = "waiting for social validation".to_owned(),
+        calibrat_personality_matrix: Vec<i32>,
+        inserte_chaos_generator: BTreeSet<String>,
+        map_influence_attributes: BTreeMap<Uuid, MapInfluenceAttributes>,
+        // assign_mimic_propagation: i32 = 0,
+        // iterate_chaos_array: i32 = 0,
+        // importe_personality_anchors: i32 = 0,
+        // inserte_extension_algorithms: i32 = 0,
+        // re_inverte_career_ladder: i32 = 0,
+        // aggregate_need_agents: i32 = 0,
+        // interprete_family_values: i32 = 0,
+        // cabalize_npc_controls: i32 = 0,
+        // maximize_social_network: i32 = 0,
     }
 }
 

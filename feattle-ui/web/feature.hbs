@@ -13,13 +13,13 @@
 
         <form action="/feature/{{ key }}/edit" method="post" id="form">
             <input name="value_json" id="value_json" type="hidden">
-            <div id="editor" data-format="{{ format_json }}" data-value="{{ value_json }}"></div>
+            <div id="editor" data-format="{{ format_json }}" data-value="{{ value_json }}" class="my-2"></div>
             <button type="submit" class="btn btn-primary">Save</button>
             <a class="btn btn-secondary" href="/">Discard</a>
         </form>
         <script>
             'use strict';
-            featureEditor = new FeatureEditor($('#editor'), $('#value_json'))
+            let featureEditor = new FeatureEditor($('#editor'), $('#value_json'))
         </script>
     {{/inline}}
 {{/layout}}

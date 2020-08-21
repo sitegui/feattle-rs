@@ -15,7 +15,8 @@ pub struct SerializedFormat {
 #[serde(tag = "tag", content = "content")]
 pub enum SerializedFormatKind {
     Bool,
-    Number,
+    Integer,
+    Float,
     String(StringFormatKind),
     List(Box<SerializedFormatKind>),
     Set(Box<SerializedFormatKind>),

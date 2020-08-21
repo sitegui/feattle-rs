@@ -6,6 +6,9 @@ edition = "2018"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
+[features]
+use_uuid = ["feattle-core/use_uuid"]
+
 [dependencies]
 feattle-core = { path = "../feattle-core" }
 feattle-sync = { path = "../feattle-sync" }
@@ -19,3 +22,8 @@ strum = "0.19.2"
 tokio = { version = "0.2.22", features = ["full"] }
 uuid = "0.8.1"
 warp = "0.2.4"
+
+[[example]]
+name = "gui"
+path = "examples/gui.rs"
+required-features = ["use_uuid"]

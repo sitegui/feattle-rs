@@ -6,30 +6,78 @@ class FeatureEditor {
         this.outputEl = outputEl
         this.sourceEl = null
 
-        this.format = editorEl.data('format')
-        this.value = editorEl.data('value')
+        this.format = JSON.parse(editorEl.attr('data-format'))
+        this.value = JSON.parse(editorEl.attr('data-value'))
 
         if (this.format.tag == 'Bool') {
-            this._checkbox()
-        } else if (this.format.tag == 'Number') {
-        } else if (this.format.tag == 'String') {
+            this._bool()
+        } else if (this.format.tag == 'Integer') {
+            this._number(true)
+        } else if (this.format.tag == 'Float') {
+            this._number(false)
+        } else if (this.format.tag == 'String' && this.format.content.tag == 'Any') {
+            this._string()
+        } else if (this.format.tag == 'String' && this.format.content.tag == 'Pattern') {
+            this._string(this.format.content.content)
+        } else if (this.format.tag == 'String' && this.format.content.tag == 'Choices') {
+            this._choices(this.format.content.content)
+        } else {
+            this._other()
         }
-    }
 
-    _checkbox() {
-        this.sourceEl = $('<input>', {
-            'type': 'checkbox',
-            'checked': this.value
-        })
         this.editorEl.append(this.sourceEl)
         this.sourceEl.change(() => {
-            this._setValue(this.sourceEl.prop('checked'))
+            this._setValue(this.sourceEl.val())
+        })
+    }
+
+    _bool() {
+        this.sourceEl = $('<select>', {
+            'class': 'custom-select',
+            append: [
+                $('<option>', {
+                    value: 'true',
+                    selected: this.value,
+                    text: 'true'
+                }),
+                $('<option>', {
+                    value: 'false',
+                    selected: !this.value,
+                    text: 'false'
+                }),
+            ]
+        })
+    }
+
+    _number(isInteger) {
+        this.sourceEl = $('<input>', {
+            type: 'number',
+            step: isInteger ? '' : 'any',
+            val: this.value
+        })
+    }
+
+    _string(pattern) {
+        this.sourceEl = $('<input>', {
+            pattern: pattern || '',
+            val: this.value
+        })
+    }
+
+    _choices(choices) {
+        this.sourceEl = $('<select>', {
+            'class': 'custom-select',
+            append: choices.map(choice => $('<option>', {
+                value: choice,
+                selected: choice == this.value,
+                text: choice
+            }))
         })
     }
 
     _setValue(value) {
-        console.log('Change value to', value)
+        console.log('Change value to', JSON.stringify(value))
         this.value = value
-        this.outputEl = JSON.stringify(value)
+        this.outputEl.val(JSON.stringify(value))
     }
 }
