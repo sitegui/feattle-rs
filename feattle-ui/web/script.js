@@ -25,7 +25,7 @@ class FeatureEditor {
         } else if (this.format.tag === 'Optional') {
             this._prepareOptional(this.format.content)
         } else {
-            this._other()
+            this._prepareOther()
         }
     }
 
@@ -107,6 +107,18 @@ class FeatureEditor {
         }
 
         this.getValue = () => this.switchEl.prop('checked') ? this.innerEditor.getValue() : null
+    }
+
+    _prepareOther() {
+        this.sourceEl = $('<div>', {
+            style: 'height: 10em; font-size: 1em',
+            text: JSON.stringify(this.initialValue, null, 4)
+        })
+        this.editorEl.append(this.sourceEl)
+        this.innerJSONEditor = ace.edit(this.sourceEl.get(0))
+        this.innerJSONEditor.setTheme('ace/theme/monokai')
+        this.innerJSONEditor.session.setMode('ace/mode/json')
+        this.getValue = () => JSON.parse(this.innerJSONEditor.getValue())
     }
 
     _newSwitch(rootEl, label, initialValue) {

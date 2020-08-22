@@ -12,7 +12,8 @@
         </p>
 
         <form action="/feature/{{ key }}/edit" method="post" id="form">
-            <div id="editor" data-format="{{ format_json }}" data-value="{{ value_json }}" class="my-2"></div>
+            <div id="editor" data-format="{{ format_json }}" data-value="{{ value_json }}"
+                 class="my-2"></div>
             <div>
                 <button type="submit" class="btn btn-primary">Save</button>
                 <a class="btn btn-secondary" href="/">Discard</a>
@@ -20,8 +21,15 @@
         </form>
         <script>
             'use strict'
-            let featureEditor = new FeatureEditor($('#editor'))
-            setInterval(() => console.log('Value is', JSON.stringify(featureEditor.getValue())), 1e3)
+            let featureEditor
+            $(() => {
+                featureEditor = new FeatureEditor($('#editor'))
+                setInterval(() => {
+                    console.log('Value is', JSON.stringify(featureEditor.getValue()))
+                }, 1e3)
+            })
         </script>
+        <script src="https://pagecdn.io/lib/ace/1.4.12/ace.js" crossorigin="anonymous"
+                integrity="sha256-Q9hnBpgBFstzZOr+OKFOWZWfcF5nFXO8Qz48Nmndo6U="></script>
     {{/inline}}
 {{/layout}}
