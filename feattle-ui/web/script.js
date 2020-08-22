@@ -83,7 +83,11 @@ class FeatureEditor {
     }
 
     _prepareOptional(innerFormat) {
-        this.switchEl = this._newSwitch(this.editorEl, 'Define some value', this.initialValue !== null)
+        this.switchEl = this._newSwitch(
+            this.editorEl,
+            'Define some value',
+            this.initialValue !== null
+        )
 
         this.sourceEl = $('<div>', {
             'class': 'py-2',
@@ -118,7 +122,11 @@ class FeatureEditor {
         this.innerJSONEditor = ace.edit(this.sourceEl.get(0))
         this.innerJSONEditor.setTheme('ace/theme/monokai')
         this.innerJSONEditor.session.setMode('ace/mode/json')
-        this.getValue = () => JSON.parse(this.innerJSONEditor.getValue())
+        this.getValue = () => {
+            let value = JSON.parse(this.innerJSONEditor.getValue())
+            this._check(this.format, value)
+            return value
+        }
     }
 
     _newSwitch(rootEl, label, initialValue) {
@@ -141,5 +149,70 @@ class FeatureEditor {
             ]
         }))
         return switchEl
+    }
+
+    _check(format, value) {
+        let assert = (test, getMessage) => {
+            if (!test) {
+                throw new Error(getMessage())
+            }
+        }
+
+        if (format.tag === 'Bool') {
+            assert(typeof value === 'boolean', () => `${value} is not a boolean`)
+        } else if (format.tag === 'Integer') {
+            assert(Number.isInteger(value), () => `${value} is not an integer`)
+        } else if (format.tag === 'Float') {
+            assert(Number.isFinite(value), () => `${value} is not a float`)
+        } else if (format.tag === 'String') {
+            this._checkString(format.content, value)
+        } else if (format.tag === 'Optional') {
+            if (value !== null) {
+                this._check(format.content, value)
+            }
+        } else if (format.tag === 'List' || format.tag === 'Set') {
+            assert(Array.isArray(value), () => `${value} is not an array`)
+            value.every(el => this._check(format.content, el))
+        } else if (format.tag === 'Map') {
+            assert(
+                value !== null &&
+                typeof value === 'object' &&
+                !Array.isArray(value), () => `${value} is not an object`
+            )
+            let keyFormat = format.content[0]
+            let elFormat = format.content[1]
+            Object.entries(value).every(([key, el]) => {
+                this._checkString(keyFormat, key)
+                this._check(elFormat, el)
+            })
+        } else {
+            assert(false, () => 'Unknown data type')
+        }
+    }
+
+    _checkString(stringFormat, value) {
+        let assert = (test, getMessage) => {
+            if (!test) {
+                throw new Error(getMessage())
+            }
+        }
+
+        assert(typeof value === 'string', () => `${value} is not a string`)
+
+        if (stringFormat.tag === 'Any') {
+        } else if (stringFormat.tag === 'Pattern') {
+            let pattern = new RegExp('^(?:' + stringFormat.content + ')$')
+            assert(
+                pattern.test(value),
+                () => `${value} does not match the pattern ${stringFormat.content}`
+            )
+        } else if (stringFormat.tag === 'Choices') {
+            assert(
+                stringFormat.content.includes(value),
+                () => `${value} must be one of ${stringFormat.content.join(', ')}`
+            )
+        } else {
+            assert(false, () => 'Unknown data type')
+        }
     }
 }
