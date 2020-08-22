@@ -8,10 +8,16 @@
         <p>
             <strong>Type</strong>: <code>{{ format }}</code><br>
             <strong>Last modification</strong>: {{ last_modification }}<br>
-            <strong>Value</strong>: <code>{{ value_overview }}</code>
+            <strong>Current value</strong>: <code>{{ value_overview }}</code>
         </p>
 
+        <div class="alert alert-danger alert-dismissible" id="validation_error"
+             style="display: none">
+            The entered value is not valid
+            <button class="close" id="close_validation_error">&times;</button>
+        </div>
         <form action="/feature/{{ key }}/edit" method="post" id="form">
+            <input name="value_json" id="value_json" type="hidden">
             <div id="editor" data-format="{{ format_json }}" data-value="{{ value_json }}"
                  class="my-2"></div>
             <div>
@@ -24,9 +30,16 @@
             let featureEditor
             $(() => {
                 featureEditor = new FeatureEditor($('#editor'))
-                setInterval(() => {
-                    console.log('Value is', JSON.stringify(featureEditor.getValue()))
-                }, 1e3)
+                $('#close_validation_error').click(() => $('#validation_error').hide())
+                $('#form').submit(() => {
+                    try {
+                        let value = featureEditor.getValue()
+                        $('#value_json').val(JSON.stringify(value))
+                    } catch (e) {
+                        $('#validation_error').show()
+                        return false
+                    }
+                })
             })
         </script>
         <script src="https://pagecdn.io/lib/ace/1.4.12/ace.js" crossorigin="anonymous"
