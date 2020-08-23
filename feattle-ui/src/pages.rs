@@ -19,7 +19,7 @@ pub struct Pages {
 
 #[derive(Debug, Clone)]
 struct PublicFile {
-    content: &'static str,
+    content: &'static [u8],
     content_type: &'static str,
 }
 
@@ -41,8 +41,15 @@ impl Pages {
         public_files.insert(
             "script.js",
             PublicFile {
-                content: include_str!("../web/script.js"),
+                content: include_bytes!("../web/script.js"),
                 content_type: "application/javascript",
+            },
+        );
+        public_files.insert(
+            "favicon-32x32.png",
+            PublicFile {
+                content: include_bytes!("../web/favicon-32x32.png"),
+                content_type: "image/png",
             },
         );
 
