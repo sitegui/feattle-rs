@@ -1,3 +1,5 @@
+use chrono::{DateTime, Utc};
+use feattle_core::persist::ValueHistory;
 use feattle_core::FeatureDefinition;
 use handlebars::Handlebars;
 use serde_json::json;
@@ -87,8 +89,22 @@ impl Pages {
 
     pub fn render_feature(
         &self,
-        definition: FeatureDefinition,
+        definition: &FeatureDefinition,
+        history: &ValueHistory,
     ) -> Result<Html<String>, Box<dyn Error>> {
+        let history = history
+            .entries
+            .iter()
+            .map(|entry| -> Result<_, _> {
+                Ok(json!({
+                    "modified_at": date_string(entry.modified_at),
+                    "modified_by": entry.modified_by,
+                    "value_overview": entry.value_overview,
+                    "value_json": serde_json::to_string(&entry.value)?,
+                }))
+            })
+            .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
+
         Ok(html(self.handlebars.render(
             "feature",
             &json!({
@@ -99,7 +115,8 @@ impl Pages {
                 "last_modification": last_modification(&definition),
                 "format_json": serde_json::to_string(&definition.format.kind)?,
                 "value_json": serde_json::to_string(&definition.value)?,
-                "label": self.label
+                "label": self.label,
+                "history": history,
             }),
         )?))
     }
@@ -107,7 +124,11 @@ impl Pages {
 
 fn last_modification(definition: &FeatureDefinition) -> String {
     match (&definition.modified_at, &definition.modified_by) {
-        (Some(at), Some(by)) => format!("{} by {}", at.format("%Y-%m-%d %H:%M:%S %Z"), by),
+        (&Some(at), Some(by)) => format!("{} by {}", date_string(at), by),
         _ => "unknown".to_owned(),
     }
+}
+
+fn date_string(datetime: DateTime<Utc>) -> String {
+    datetime.format("%Y-%m-%d %H:%M:%S %Z").to_string()
 }

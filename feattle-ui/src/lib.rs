@@ -47,8 +47,9 @@ impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
             warp::path!("feature" / String)
                 .and(warp::get())
                 .map(move |key: String| {
-                    let definition = dbg!(this.feattles.definition(&dbg!(key))).unwrap();
-                    this.pages.render_feature(definition).unwrap()
+                    let definition = this.feattles.definition(&key).unwrap();
+                    let history = this.feattles.history(&key).unwrap();
+                    this.pages.render_feature(&definition, &history).unwrap()
                 })
         };
 

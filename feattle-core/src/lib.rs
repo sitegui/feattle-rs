@@ -7,7 +7,7 @@ pub mod persist;
 
 use crate::__internal::{FeaturesStruct, InnerFeattles};
 use crate::json_reading::FromJsonError;
-use crate::persist::{CurrentValue, CurrentValues, Persist, ValueHistory};
+use crate::persist::{CurrentValue, CurrentValues, HistoryEntry, Persist, ValueHistory};
 use chrono::{DateTime, Utc};
 pub use definition::*;
 pub use feattle_value::*;
@@ -135,8 +135,18 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
         let old_history = persistence
             .load_history(key)
             .and_then(|history| {
+                // Prepare updated history
                 let mut history = history.unwrap_or_default();
-                history.entries.push(new_value.clone());
+                let new_definition = self
+                    .definition(key)
+                    .expect("the key is guaranteed to exist");
+                history.entries.push(HistoryEntry {
+                    value: new_value.value.clone(),
+                    value_overview: new_definition.value_overview,
+                    modified_at: new_value.modified_at,
+                    modified_by: new_value.modified_by.clone(),
+                });
+
                 persistence.save_history(key, &history).map(|_| {
                     history.entries.pop();
                     history
