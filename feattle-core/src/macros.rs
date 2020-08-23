@@ -53,8 +53,8 @@ macro_rules! feattles {
                 fn update(
                     &mut self,
                     key: &str,
-                    value: &__internal::CurrentValue,
-                ) -> Result<(), __internal::FromJsonError> {
+                    value: Option<__internal::CurrentValue>,
+                ) -> Result<Option<__internal::CurrentValue>, __internal::FromJsonError> {
                     match key {
                         $(stringify!($key) => self.$key.update(value)),*,
                         _ => unreachable!(),

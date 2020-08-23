@@ -26,7 +26,7 @@ pub struct CurrentValue {
     pub value: Value,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct ValueHistory {
     pub entries: Vec<CurrentValue>,
 }

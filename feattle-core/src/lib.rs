@@ -7,7 +7,7 @@ pub mod persist;
 
 use crate::__internal::{FeaturesStruct, InnerFeattles};
 use crate::json_reading::FromJsonError;
-use crate::persist::{CurrentValue, CurrentValues, Persist};
+use crate::persist::{CurrentValue, CurrentValues, Persist, ValueHistory};
 use chrono::{DateTime, Utc};
 pub use definition::*;
 pub use feattle_value::*;
@@ -26,6 +26,14 @@ pub enum UpdateError {
     #[error(transparent)]
     FailedParsing(#[from] FromJsonError),
     #[error("failed to persist new state")]
+    FailedPersistence(#[source] Box<dyn Error>),
+}
+
+#[derive(Error, Debug)]
+pub enum HistoryError {
+    #[error("the key {0} is unknown")]
+    UnknownKey(String),
+    #[error("failed to load persisted state")]
     FailedPersistence(#[source] Box<dyn Error>),
 }
 
@@ -64,15 +72,13 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
                     date: now,
                     features: Default::default(),
                 };
-                self.persistence().save_current(&empty)?;
                 inner.current_values = Some(empty);
             }
-            Some(current_values) => {
+            Some(mut current_values) => {
                 for &key in self.keys() {
-                    if let Some(value) = current_values.features.get(key) {
-                        if let Err(error) = inner.feattles_struct.update(key, value) {
-                            log::error!("Failed to update {}: {:?}", key, error);
-                        }
+                    let value = current_values.features.remove(key);
+                    if let Err(error) = inner.feattles_struct.update(key, value) {
+                        log::error!("Failed to update {}: {:?}", key, error);
                     }
                 }
                 inner.current_values = Some(current_values);
@@ -82,38 +88,76 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
     }
 
     fn update(&self, key: &str, value: Value, modified_by: String) -> Result<(), UpdateError> {
-        // Load current state
-        let mut inner = self._write();
+        use UpdateError::*;
+
+        // The update operation is made of 4 steps, each of which may fail:
+        // 1. parse and update the inner generic struct
+        // 2. persist the new history entry
+        // 3. persist the new current values
+        // 4. update the copy of the current values
+        // If any step fails, the others will be rolled back
 
         // Assert the key exists
         if !self.keys().contains(&key) {
-            return Err(UpdateError::UnknownKey(key.to_owned()));
+            return Err(UnknownKey(key.to_owned()));
         }
 
-        // Update in-memory
-        let now = Utc::now();
-        let current_value = CurrentValue {
-            modified_at: now,
+        let new_value = CurrentValue {
+            modified_at: Utc::now(),
             modified_by,
             value,
         };
-        inner.feattles_struct.update(key, &current_value)?;
 
-        // Prepare storage
-        let current_values = inner
-            .current_values
-            .as_mut()
-            .ok_or(UpdateError::NeverReloaded)?;
-        current_values.version += 1;
-        current_values.date = now;
-        current_values
-            .features
-            .insert(key.to_owned(), current_value);
+        let (new_values, old_value) = {
+            let mut inner = self._write();
 
-        // Update persistent storage
-        self.persistence()
-            .save_current(current_values)
-            .map_err(UpdateError::FailedPersistence)?;
+            // Check error condition for step 4 and prepare the new instance
+            let mut new_values = inner.current_values.clone().ok_or(NeverReloaded)?;
+            new_values
+                .features
+                .insert(key.to_owned(), new_value.clone());
+
+            // Step 1
+            let old_value = inner.feattles_struct.update(key, Some(new_value.clone()))?;
+
+            (new_values, old_value)
+        };
+
+        let rollback_step_1 = || {
+            self._write()
+                .feattles_struct
+                .update(key, old_value.clone())
+                .expect("it should work because it was the previous value for it");
+        };
+
+        // Step 2: load + modify + save history
+        let persistence = self.persistence();
+        let old_history = persistence
+            .load_history(key)
+            .and_then(|history| {
+                let mut history = history.unwrap_or_default();
+                history.entries.push(new_value.clone());
+                persistence.save_history(key, &history).map(|_| {
+                    history.entries.pop();
+                    history
+                })
+            })
+            .map_err(|err| {
+                rollback_step_1();
+                FailedPersistence(err)
+            })?;
+
+        // Step 3
+        persistence.save_current(&new_values).map_err(|err| {
+            rollback_step_1();
+            if let Err(err) = self.persistence().save_history(key, &old_history) {
+                log::warn!("Failed to rollback history for {}: {:?}", key, err);
+            }
+            FailedPersistence(err)
+        })?;
+
+        // Step 4
+        self._write().current_values = Some(new_values);
 
         Ok(())
     }
@@ -126,5 +170,19 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
                     .expect("since we iterate over the list of known keys, this should always work")
             })
             .collect()
+    }
+
+    fn history(&self, key: &str) -> Result<ValueHistory, HistoryError> {
+        // Assert the key exists
+        if !self.keys().contains(&key) {
+            return Err(HistoryError::UnknownKey(key.to_owned()));
+        }
+
+        let history = self
+            .persistence()
+            .load_history(key)
+            .map_err(HistoryError::FailedPersistence)?;
+
+        Ok(history.unwrap_or_default())
     }
 }

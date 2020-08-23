@@ -107,7 +107,7 @@ impl Pages {
 
 fn last_modification(definition: &FeatureDefinition) -> String {
     match (&definition.modified_at, &definition.modified_by) {
-        (Some(at), Some(by)) => format!("{} by {}", at.format("%Y-%m-%d %H:%M:%S"), by),
+        (Some(at), Some(by)) => format!("{} by {}", at.format("%Y-%m-%d %H:%M:%S %Z"), by),
         _ => "unknown".to_owned(),
     }
 }
