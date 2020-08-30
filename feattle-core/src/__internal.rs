@@ -1,3 +1,5 @@
+//! Internal types and re-exports used by the macros
+
 pub use crate::json_reading::FromJsonError;
 pub use crate::persist::{CurrentValue, Persist};
 pub use crate::Feattles;

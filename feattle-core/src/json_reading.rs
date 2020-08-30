@@ -1,3 +1,5 @@
+//! Helper free functions to read Rust values from `serde_json::Value`
+
 use serde_json::{Map, Value};
 use std::error::Error;
 use thiserror::Error;

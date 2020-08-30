@@ -1,7 +1,13 @@
+//! The base implementation of _Feattle_, based on the main macro `feattles!`. Consult the doc on
+//! the main package for more.
+
+#[doc(hidden)]
 pub mod __internal;
 mod definition;
 mod feattle_value;
 pub mod json_reading;
+/// This module only contains exported macros, that are documented at the root level.
+#[doc(hidden)]
 pub mod macros;
 pub mod persist;
 
