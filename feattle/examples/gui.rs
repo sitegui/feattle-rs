@@ -52,15 +52,15 @@ feattles! {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), Error> {
     env_logger::init();
 
     use feattle_sync::persist::Disk;
     use std::sync::Arc;
 
-    let disk_storage = Disk::new("data")?;
+    let disk_storage = Disk::new("data");
     let features = Arc::new(Features::new(disk_storage));
-    BackgroundSync::new(&features).spawn();
+    tokio::spawn(BackgroundSync::new(&features).run());
     dbg!(features.last_reload());
     dbg!(features.current_values());
     for def in features.definitions() {
@@ -68,9 +68,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     let panel = AdminPanel::new(features.clone(), "gui".to_owned());
-    warp::serve(panel.warp_filter())
-        .run(([127, 0, 0, 1], 3030))
-        .await;
+    warp_ui::run_server(panel, ([127, 0, 0, 1], 3030)).await;
 
     Ok(())
 }
