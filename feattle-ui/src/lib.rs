@@ -1,14 +1,12 @@
 mod pages;
+pub mod warp_ui;
 
 use crate::pages::Pages;
 use feattle_core::persist::Persist;
-use feattle_core::Feattles;
+use feattle_core::{Feattles, HistoryError, UpdateError};
 use serde::export::PhantomData;
-use serde::Deserialize;
 use serde_json::Value;
 use std::sync::Arc;
-use warp::http::Uri;
-use warp::{Filter, Rejection, Reply};
 
 pub struct AdminPanel<F, P> {
     feattles: Arc<F>,
@@ -16,10 +14,27 @@ pub struct AdminPanel<F, P> {
     _phantom: PhantomData<P>,
 }
 
-#[derive(Debug, Deserialize)]
-struct EditFeatureForm {
-    value_json: String,
+#[derive(Debug, Clone)]
+pub struct RenderedPage {
+    content_type: String,
+    content: Vec<u8>,
 }
+
+#[derive(Debug, thiserror::Error)]
+pub enum RenderError {
+    #[error("The requested page does not exist")]
+    NotFound,
+    #[error("The template failed to render")]
+    Template(#[from] handlebars::RenderError),
+    #[error("Failed to serialize or deserialize JSON")]
+    Serialization(#[from] serde_json::Error),
+    #[error("Failed to recover history information")]
+    History(#[from] HistoryError),
+    #[error("Failed to update value")]
+    Update(#[from] UpdateError),
+}
+
+pub type RenderResult = Result<RenderedPage, RenderError>;
 
 impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
     pub fn new(feattles: Arc<F>, label: String) -> Arc<Self> {
@@ -30,58 +45,33 @@ impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
         })
     }
 
-    pub fn warp_filter(
-        self: Arc<Self>,
-    ) -> impl Filter<Extract = impl Reply, Error = Rejection> + Clone {
-        let list_features = {
-            let this = self.clone();
-            warp::path::end().and(warp::get()).map(move || {
-                this.pages
-                    .render_features(this.feattles.definitions())
-                    .unwrap()
-            })
-        };
+    pub fn list_features(&self) -> RenderResult {
+        self.pages.render_features(self.feattles.definitions())
+    }
 
-        let show_feature = {
-            let this = self.clone();
-            warp::path!("feature" / String)
-                .and(warp::get())
-                .map(move |key: String| {
-                    let definition = this.feattles.definition(&key).unwrap();
-                    let history = this.feattles.history(&key).unwrap();
-                    this.pages.render_feature(&definition, &history).unwrap()
-                })
-        };
+    pub async fn show_feature(&self, key: &str) -> RenderResult {
+        let definition = self
+            .feattles
+            .definition(&key)
+            .ok_or(RenderError::NotFound)?;
+        let history = self.feattles.history(&key).await?;
+        self.pages.render_feature(&definition, &history)
+    }
 
-        let edit_feature = {
-            let this = self.clone();
-            warp::path!("feature" / String / "edit")
-                .and(warp::post())
-                .and(warp::body::form())
-                .map(move |key: String, form: EditFeatureForm| {
-                    log::info!(
-                        "Received edit request for key {} with value {}",
-                        key,
-                        form.value_json
-                    );
-                    let value: Value = serde_json::from_str(&form.value_json).unwrap();
-                    this.feattles
-                        .update(&key, value, "admin".to_owned())
-                        .unwrap();
-                    warp::redirect(Uri::from_static("/"))
-                })
-        };
+    pub async fn edit_feature(&self, key: &str, value_json: &str) -> Result<(), RenderError> {
+        log::info!(
+            "Received edit request for key {} with value {}",
+            key,
+            value_json
+        );
+        let value: Value = serde_json::from_str(&value_json)?;
+        self.feattles
+            .update(&key, value, "admin".to_owned())
+            .await?;
+        Ok(())
+    }
 
-        let public_files = {
-            let this = self.clone();
-            warp::path!("public" / String)
-                .and(warp::get())
-                .map(move |file_name: String| this.pages.render_public_file(&file_name))
-        };
-
-        list_features
-            .or(show_feature)
-            .or(edit_feature)
-            .or(public_files)
+    pub fn render_public_file(&self, path: &str) -> RenderResult {
+        self.pages.render_public_file(path)
     }
 }

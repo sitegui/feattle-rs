@@ -1,14 +1,11 @@
+use crate::{RenderError, RenderResult, RenderedPage};
 use chrono::{DateTime, Utc};
 use feattle_core::persist::ValueHistory;
 use feattle_core::FeatureDefinition;
 use handlebars::Handlebars;
 use serde_json::json;
 use std::collections::BTreeMap;
-use std::error::Error;
 use std::sync::Arc;
-use warp::http::StatusCode;
-use warp::reply::{html, Html};
-use warp::Reply;
 
 #[derive(Debug, Clone)]
 pub struct Pages {
@@ -60,21 +57,15 @@ impl Pages {
         }
     }
 
-    pub fn render_public_file(&self, path: &str) -> Box<dyn Reply> {
-        match self.public_files.get(path) {
-            None => Box::new(warp::reply::with_status("Not found", StatusCode::NOT_FOUND)),
-            Some(file) => Box::new(warp::reply::with_header(
-                file.content.to_owned(),
-                "Content-Type",
-                file.content_type.to_owned(),
-            )),
-        }
+    pub fn render_public_file(&self, path: &str) -> RenderResult {
+        let file = self.public_files.get(path).ok_or(RenderError::NotFound)?;
+        Ok(RenderedPage {
+            content_type: file.content_type.to_owned(),
+            content: file.content.to_owned(),
+        })
     }
 
-    pub fn render_features(
-        &self,
-        definitions: Vec<FeatureDefinition>,
-    ) -> Result<Html<String>, Box<dyn Error>> {
+    pub fn render_features(&self, definitions: Vec<FeatureDefinition>) -> RenderResult {
         let features: Vec<_> = definitions
             .into_iter()
             .map(|definition| {
@@ -88,21 +79,21 @@ impl Pages {
             })
             .collect();
 
-        Ok(html(self.handlebars.render(
+        Self::convert_html(self.handlebars.render(
             "features",
             &json!({ "features": features, "label": self.label }),
-        )?))
+        ))
     }
 
     pub fn render_feature(
         &self,
         definition: &FeatureDefinition,
         history: &ValueHistory,
-    ) -> Result<Html<String>, Box<dyn Error>> {
+    ) -> RenderResult {
         let history = history
             .entries
             .iter()
-            .map(|entry| -> Result<_, _> {
+            .map(|entry| -> Result<_, RenderError> {
                 Ok(json!({
                     "modified_at": date_string(entry.modified_at),
                     "modified_by": entry.modified_by,
@@ -110,9 +101,9 @@ impl Pages {
                     "value_json": serde_json::to_string(&entry.value)?,
                 }))
             })
-            .collect::<Result<Vec<_>, Box<dyn Error>>>()?;
+            .collect::<Result<Vec<_>, RenderError>>()?;
 
-        Ok(html(self.handlebars.render(
+        Self::convert_html(self.handlebars.render(
             "feature",
             &json!({
                 "key": definition.key,
@@ -125,7 +116,15 @@ impl Pages {
                 "label": self.label,
                 "history": history,
             }),
-        )?))
+        ))
+    }
+
+    fn convert_html(rendered: Result<String, handlebars::RenderError>) -> RenderResult {
+        let content = rendered?;
+        Ok(RenderedPage {
+            content_type: "text/html; charset=utf-8".to_owned(),
+            content: content.into_bytes(),
+        })
     }
 }
 
