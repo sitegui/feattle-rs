@@ -26,7 +26,7 @@ pub trait FeattleStringValue: FromStr + ToString + Debug {
 
 impl<T: FeattleStringValue> FeattleValue for T
 where
-    <T as FromStr>::Err: Error + 'static,
+    <T as FromStr>::Err: Error + Send + Sync + 'static,
 {
     fn as_json(&self) -> Value {
         Value::String(self.to_string())
@@ -215,7 +215,7 @@ impl<T: FeattleValue + Ord> FeattleValue for BTreeSet<T> {
 
 impl<K: FeattleStringValue + Ord, V: FeattleValue> FeattleValue for BTreeMap<K, V>
 where
-    <K as FromStr>::Err: Error + 'static,
+    <K as FromStr>::Err: Error + Send + Sync + 'static,
 {
     fn as_json(&self) -> Value {
         Value::Object(

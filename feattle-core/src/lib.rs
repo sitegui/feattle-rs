@@ -14,14 +14,17 @@ pub mod persist;
 use crate::__internal::{FeaturesStruct, InnerFeattles};
 use crate::json_reading::FromJsonError;
 use crate::persist::{CurrentValue, CurrentValues, HistoryEntry, Persist, ValueHistory};
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 pub use definition::*;
 pub use feattle_value::*;
 use parking_lot::{MappedRwLockReadGuard, RwLockReadGuard, RwLockWriteGuard};
 use serde_json::Value;
-use std::error::Error;
 pub use strum::VariantNames;
 use thiserror::Error;
+
+/// A boxed error, conveniently compatible with `anyhow::Error`
+pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 #[derive(Error, Debug)]
 pub enum UpdateError {
@@ -32,7 +35,7 @@ pub enum UpdateError {
     #[error(transparent)]
     FailedParsing(#[from] FromJsonError),
     #[error("failed to persist new state")]
-    FailedPersistence(#[source] Box<dyn Error>),
+    FailedPersistence(#[source] Error),
 }
 
 #[derive(Error, Debug)]
@@ -40,9 +43,10 @@ pub enum HistoryError {
     #[error("the key {0} is unknown")]
     UnknownKey(String),
     #[error("failed to load persisted state")]
-    FailedPersistence(#[source] Box<dyn Error>),
+    FailedPersistence(#[source] Error),
 }
 
+#[async_trait]
 pub trait Feattles<P: Persist>: Send + Sync + 'static {
     type FeatureStruct: FeaturesStruct;
     fn _read(&self) -> RwLockReadGuard<InnerFeattles<Self::FeatureStruct>>;
@@ -66,8 +70,8 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
         }
     }
 
-    fn reload(&self) -> Result<(), Box<dyn Error>> {
-        let current_values = self.persistence().load_current()?;
+    async fn reload(&self) -> Result<(), Error> {
+        let current_values = self.persistence().load_current().await?;
         let mut inner = self._write();
         let now = Utc::now();
         inner.last_reload = Some(now);
@@ -93,7 +97,12 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
         Ok(())
     }
 
-    fn update(&self, key: &str, value: Value, modified_by: String) -> Result<(), UpdateError> {
+    async fn update(
+        &self,
+        key: &str,
+        value: Value,
+        modified_by: String,
+    ) -> Result<(), UpdateError> {
         use UpdateError::*;
 
         // The update operation is made of 4 steps, each of which may fail:
@@ -140,37 +149,41 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
         let persistence = self.persistence();
         let old_history = persistence
             .load_history(key)
-            .and_then(|history| {
-                // Prepare updated history
-                let mut history = history.unwrap_or_default();
-                let new_definition = self
-                    .definition(key)
-                    .expect("the key is guaranteed to exist");
-                history.entries.push(HistoryEntry {
-                    value: new_value.value.clone(),
-                    value_overview: new_definition.value_overview,
-                    modified_at: new_value.modified_at,
-                    modified_by: new_value.modified_by.clone(),
-                });
+            .await
+            .map_err(|err| {
+                rollback_step_1();
+                FailedPersistence(err)
+            })?
+            .unwrap_or_default();
 
-                persistence.save_history(key, &history).map(|_| {
-                    history.entries.pop();
-                    history
-                })
-            })
+        // Prepare updated history
+        let new_definition = self
+            .definition(key)
+            .expect("the key is guaranteed to exist");
+        let mut new_history = old_history.clone();
+        new_history.entries.push(HistoryEntry {
+            value: new_value.value.clone(),
+            value_overview: new_definition.value_overview,
+            modified_at: new_value.modified_at,
+            modified_by: new_value.modified_by.clone(),
+        });
+
+        persistence
+            .save_history(key, &new_history)
+            .await
             .map_err(|err| {
                 rollback_step_1();
                 FailedPersistence(err)
             })?;
 
         // Step 3
-        persistence.save_current(&new_values).map_err(|err| {
+        if let Err(err) = persistence.save_current(&new_values).await {
             rollback_step_1();
-            if let Err(err) = self.persistence().save_history(key, &old_history) {
+            if let Err(err) = self.persistence().save_history(key, &old_history).await {
                 log::warn!("Failed to rollback history for {}: {:?}", key, err);
             }
-            FailedPersistence(err)
-        })?;
+            return Err(FailedPersistence(err));
+        }
 
         // Step 4
         self._write().current_values = Some(new_values);
@@ -188,7 +201,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
             .collect()
     }
 
-    fn history(&self, key: &str) -> Result<ValueHistory, HistoryError> {
+    async fn history(&self, key: &str) -> Result<ValueHistory, HistoryError> {
         // Assert the key exists
         if !self.keys().contains(&key) {
             return Err(HistoryError::UnknownKey(key.to_owned()));
@@ -197,6 +210,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
         let history = self
             .persistence()
             .load_history(key)
+            .await
             .map_err(HistoryError::FailedPersistence)?;
 
         Ok(history.unwrap_or_default())

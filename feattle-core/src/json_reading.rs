@@ -1,10 +1,9 @@
 //! Helper free functions to read Rust values from `serde_json::Value`
 
+use crate::Error;
 use serde_json::{Map, Value};
-use std::error::Error;
-use thiserror::Error;
 
-#[derive(Error, Debug)]
+#[derive(thiserror::Error, Debug)]
 pub enum FromJsonError {
     #[error("wrong JSON kind, got {actual} and was expecting {expected}")]
     WrongKind {
@@ -12,11 +11,11 @@ pub enum FromJsonError {
         actual: &'static str,
     },
     #[error("failed to parse")]
-    ParseError { cause: Box<dyn Error> },
+    ParseError { cause: Error },
 }
 
 impl FromJsonError {
-    pub fn parsing<E: Error + 'static>(error: E) -> FromJsonError {
+    pub fn parsing<E: std::error::Error + Send + Sync + 'static>(error: E) -> FromJsonError {
         FromJsonError::ParseError {
             cause: Box::new(error),
         }
