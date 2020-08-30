@@ -5,19 +5,21 @@
 //! used to create your own custom logic, however some implementors are available in the package
 //! `feattle-sync`.
 
+use crate::Error;
+use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
-use std::error::Error;
 
 /// Responsible for storing and loading data from a permanent storage.
+#[async_trait]
 pub trait Persist: Send + Sync + 'static {
-    fn save_current(&self, value: &CurrentValues) -> Result<(), Box<dyn Error>>;
-    fn load_current(&self) -> Result<Option<CurrentValues>, Box<dyn Error>>;
+    async fn save_current(&self, value: &CurrentValues) -> Result<(), Error>;
+    async fn load_current(&self) -> Result<Option<CurrentValues>, Error>;
 
-    fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), Box<dyn Error>>;
-    fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, Box<dyn Error>>;
+    async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), Error>;
+    async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, Error>;
 }
 
 /// Store the current values of all feature toggles
