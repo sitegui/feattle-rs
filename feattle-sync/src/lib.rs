@@ -3,8 +3,8 @@ pub mod persist;
 use feattle_core::persist::Persist;
 use feattle_core::Feattles;
 use std::sync::{Arc, Weak};
-use std::thread::{sleep, spawn, JoinHandle};
 use std::time::Duration;
+use tokio::time::delay_for;
 
 pub struct BackgroundSync<F> {
     ok_interval: Duration,
@@ -37,26 +37,24 @@ impl<F> BackgroundSync<F> {
         self
     }
 
-    pub fn spawn<P>(self) -> JoinHandle<()>
+    pub async fn run<P>(self)
     where
         F: Feattles<P>,
         P: Persist,
     {
-        spawn(move || {
-            while let Some(feattles) = self.feattles.upgrade() {
-                match feattles.reload() {
-                    Ok(()) => {
-                        log::debug!("Feattles updated");
-                        sleep(self.ok_interval);
-                    }
-                    Err(err) => {
-                        log::error!("Failed to sync Feattles: {:?}", err);
-                        sleep(self.err_interval);
-                    }
+        while let Some(feattles) = self.feattles.upgrade() {
+            match feattles.reload().await {
+                Ok(()) => {
+                    log::debug!("Feattles updated");
+                    delay_for(self.ok_interval).await;
+                }
+                Err(err) => {
+                    log::error!("Failed to sync Feattles: {:?}", err);
+                    delay_for(self.err_interval).await;
                 }
             }
+        }
 
-            log::info!("Stop background sync since Feattles got dropped")
-        })
+        log::info!("Stop background sync since Feattles got dropped")
     }
 }
