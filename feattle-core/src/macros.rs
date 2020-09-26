@@ -1,17 +1,96 @@
+/// Define an `enum` that can be used as a type for a feattle
+///
+/// The generated `enum` will have these standard traits: `Debug`, `Clone`, `Copy`, `Eq`,
+/// `PartialEq`, `PartialOrd`, `Ord`, `FromStr`, `Display`. And mainly, it will implement
+/// [`crate::FeattleStringValue`] so that it can be used a feattle type.
+///
+/// Only `enum`s whose variants do not carry any extra information are supported.
+///
+/// # Examples
+/// In the simplest form:
+/// ```
+/// use feattle_core::feattle_enum;
+///
+/// feattle_enum! {
+///     enum Colors { Red, Green, Blue }
+/// }
+/// ```
+///
+/// However, it also works with other visibility keywords and additional attributes on the enum
+/// itself or its variants. Those attributes will not be modified by this lib, allowing composition
+/// with other libs. For example, you can also make the enum `Serialize`:
+/// ```
+/// use feattle_core::feattle_enum;
+/// use serde::Serialize;
+///
+/// feattle_enum! {
+///     #[derive(Serialize)]
+///     pub(crate) enum Colors {
+///         #[serde(rename = "R")]
+///         Red,
+///         #[serde(rename = "G")]
+///         Green,
+///         #[serde(rename = "B")]
+///         Blue,
+///     }
+/// }
+/// ```
 #[macro_export]
 macro_rules! feattle_enum {
-    ($key:ident { $($variant:ident),* $(,)? }) => {
+    (
+        $(#[$enum_meta:meta])*
+        $visibility:vis enum $name:ident {
+            $(
+                $(#[$variant_meta:meta])*
+                $variant:ident
+            ),+ $(,)?
+        }
+    ) => {
         #[derive(Debug, Clone, Copy, Eq, PartialEq, PartialOrd, Ord)]
-        #[derive($crate::__internal::EnumString)]
-        #[derive($crate::__internal::EnumVariantNames)]
-        #[derive($crate::__internal::Display)]
-        pub enum $key { $($variant),* }
+        $(#[$enum_meta])*
+        $visibility enum $name {
+            $(
+                $(#[$variant_meta])*
+                $variant
+            ),+
+        }
 
-        impl $crate::FeattleStringValue for $key {
+        impl ::std::str::FromStr for $name {
+            type Err = $crate::__internal::ParseError;
+            fn from_str(s: &str) -> ::std::result::Result<Self, Self::Err> {
+                match s {
+                    $(
+                        stringify!($variant) => ::std::result::Result::Ok(Self::$variant)
+                    ),+,
+                    _ => ::std::result::Result::Err($crate::__internal::ParseError)
+                }
+            }
+        }
+
+        impl ::std::fmt::Display for $name {
+            fn fmt(&self, f: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
+                let as_str = match self {
+                    $(
+                        Self::$variant => stringify!($variant)
+                    ),+
+                };
+                ::std::write!(f, "{}", as_str)
+            }
+        }
+
+        impl $name {
+            const VARIANTS: &'static [&'static str] = &[
+                $(
+                    stringify!($variant)
+                ),+
+            ];
+        }
+
+        impl $crate::FeattleStringValue for $name {
             fn serialized_string_format() -> $crate::StringFormat {
-                let variants = $key::VARIANTS.join(", ");
+                let variants = Self::VARIANTS.join(", ");
                 $crate::StringFormat {
-                    kind: $crate::StringFormatKind::Choices(&$key::VARIANTS),
+                    kind: $crate::StringFormatKind::Choices(&Self::VARIANTS),
                     tag: format!("enum {{{}}}", variants),
                 }
             }

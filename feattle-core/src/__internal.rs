@@ -5,13 +5,13 @@ pub use crate::persist::{CurrentValue, Persist};
 pub use crate::Feattles;
 pub use crate::FeatureDefinition;
 pub use parking_lot::{MappedRwLockReadGuard, RwLockReadGuard, RwLockWriteGuard};
-pub use strum_macros::{Display, EnumString, EnumVariantNames};
 
 use crate::persist::CurrentValues;
 use crate::FeattleValue;
 use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
-use std::mem;
+use std::error::Error;
+use std::{fmt, mem};
 
 #[derive(Debug)]
 pub struct FeattlesImpl<P, FS> {
@@ -35,7 +35,18 @@ pub struct Feature<T> {
     current_value: Option<CurrentValue>,
 }
 
-pub trait FeaturesStruct {
+#[derive(Copy, Clone, Debug)]
+pub struct ParseError;
+
+impl fmt::Display for ParseError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Matching variant not found")
+    }
+}
+
+impl Error for ParseError {}
+
+pub trait FeattleStruct {
     fn update(
         &mut self,
         key: &str,

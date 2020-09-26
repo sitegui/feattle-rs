@@ -3,14 +3,14 @@ use std::collections::{BTreeMap, BTreeSet};
 use uuid::Uuid;
 
 feattle_enum! {
-    CalculateMoneySupply {
+    enum CalculateMoneySupply {
         High,
         Low,
     }
 }
 
 feattle_enum! {
-    CalibratePersonalityMatrix {
+    enum CalibratePersonalityMatrix {
         Rows,
         Columns,
         Diagonals,
@@ -19,7 +19,7 @@ feattle_enum! {
 }
 
 feattle_enum! {
-    MapInfluenceAttributes {
+    enum MapInfluenceAttributes {
         Bias,
         Linear,
         Square,
