@@ -3,6 +3,7 @@
 use crate::Error;
 use serde_json::{Map, Value};
 
+/// Indicate an error that occurred while trying to read a feattle value from JSON
 #[derive(thiserror::Error, Debug)]
 pub enum FromJsonError {
     #[error("wrong JSON kind, got {actual} and was expecting {expected}")]
@@ -15,6 +16,7 @@ pub enum FromJsonError {
 }
 
 impl FromJsonError {
+    /// Create a new [`FromJsonError::ParseError`] variant
     pub fn parsing<E: std::error::Error + Send + Sync + 'static>(error: E) -> FromJsonError {
         FromJsonError::ParseError {
             cause: Box::new(error),
@@ -35,6 +37,8 @@ fn json_kind(value: &Value) -> &'static str {
 
 macro_rules! impl_extract_json {
     ($fn_name:ident, $output:ty, $method:ident, $expected:expr) => {
+        #[doc = "Try to read as"]
+        #[doc = $expected]
         pub fn $fn_name(value: &Value) -> Result<$output, FromJsonError> {
             value.$method().ok_or_else(|| FromJsonError::WrongKind {
                 expected: $expected,

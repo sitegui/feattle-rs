@@ -13,12 +13,55 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 
 /// Responsible for storing and loading data from a permanent storage.
+///
+/// # Async
+/// The methods on this trait are async and can be implemented with the help of the `async_trait`
+/// crate:
+///
+/// ```
+/// use async_trait::async_trait;
+/// use feattle_core::persist::*;
+/// use feattle_core::Error;
+///
+/// struct MyPersistenceLogic;
+///
+/// #[async_trait]
+/// impl Persist for MyPersistenceLogic {
+///     async fn save_current(&self, value: &CurrentValues) -> Result<(), Error> {
+///         unimplemented!()
+///     }
+///
+///     async fn load_current(&self) -> Result<Option<CurrentValues>, Error> {
+///         unimplemented!()
+///     }
+///
+///     async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), Error> {
+///         unimplemented!()
+///     }
+///
+///     async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, Error> {
+///         unimplemented!()
+///     }
+/// }
+/// ```
+///
+/// # Errors
+/// The methods can indicate failures by returning [`type@crate::Error`], read more about on its own
+/// page.
 #[async_trait]
 pub trait Persist: Send + Sync + 'static {
+    /// Save current state of all feattles.
     async fn save_current(&self, value: &CurrentValues) -> Result<(), Error>;
+
+    /// Load the current state of all feattles. With no previous state existed, `Ok(None)` should be
+    /// returned.
     async fn load_current(&self) -> Result<Option<CurrentValues>, Error>;
 
+    /// Save the full history of a single feattle.
     async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), Error>;
+
+    /// Load the full history of a single feattle. With the feattle has no history, `Ok(None)`
+    /// should be returned.
     async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, Error>;
 }
 
@@ -32,7 +75,7 @@ pub struct CurrentValues {
     /// Data for each feature. Some features may not be present in this map, since they were never
     /// modified. Also, some extra features may be present in this map because they were used in a
     /// previous invocation of feattles.
-    pub features: BTreeMap<String, CurrentValue>,
+    pub feattles: BTreeMap<String, CurrentValue>,
 }
 
 /// Store the current value of a single feature toggle

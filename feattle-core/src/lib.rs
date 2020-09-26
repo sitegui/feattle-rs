@@ -11,7 +11,7 @@ pub mod json_reading;
 pub mod macros;
 pub mod persist;
 
-use crate::__internal::{FeaturesStruct, InnerFeattles};
+use crate::__internal::{FeattleStruct, InnerFeattles};
 use crate::json_reading::FromJsonError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -23,6 +23,8 @@ use serde_json::Value;
 use thiserror::Error;
 
 /// A boxed error, conveniently compatible with `anyhow::Error`
+///
+/// TODO: doc
 pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 #[derive(Error, Debug)]
@@ -47,13 +49,13 @@ pub enum HistoryError {
 
 #[async_trait]
 pub trait Feattles<P: Persist>: Send + Sync + 'static {
-    type FeatureStruct: FeaturesStruct;
-    fn _read(&self) -> RwLockReadGuard<InnerFeattles<Self::FeatureStruct>>;
-    fn _write(&self) -> RwLockWriteGuard<InnerFeattles<Self::FeatureStruct>>;
+    type FeattleStruct: FeattleStruct;
+    fn _read(&self) -> RwLockReadGuard<InnerFeattles<Self::FeattleStruct>>;
+    fn _write(&self) -> RwLockWriteGuard<InnerFeattles<Self::FeattleStruct>>;
     fn new(persistence: P) -> Self;
     fn persistence(&self) -> &P;
     fn keys(&self) -> &'static [&'static str];
-    fn definition(&self, key: &str) -> Option<FeatureDefinition>;
+    fn definition(&self, key: &str) -> Option<FeattleDefinition>;
 
     fn last_reload(&self) -> Option<DateTime<Utc>> {
         self._read().last_reload
@@ -79,13 +81,13 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
                 let empty = CurrentValues {
                     version: 0,
                     date: now,
-                    features: Default::default(),
+                    feattles: Default::default(),
                 };
                 inner.current_values = Some(empty);
             }
             Some(mut current_values) => {
                 for &key in self.keys() {
-                    let value = current_values.features.remove(key);
+                    let value = current_values.feattles.remove(key);
                     if let Err(error) = inner.feattles_struct.update(key, value) {
                         log::error!("Failed to update {}: {:?}", key, error);
                     }
@@ -128,7 +130,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
             // Check error condition for step 4 and prepare the new instance
             let mut new_values = inner.current_values.clone().ok_or(NeverReloaded)?;
             new_values
-                .features
+                .feattles
                 .insert(key.to_owned(), new_value.clone());
 
             // Step 1
@@ -190,7 +192,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
         Ok(())
     }
 
-    fn definitions(&self) -> Vec<FeatureDefinition> {
+    fn definitions(&self) -> Vec<FeattleDefinition> {
         self.keys()
             .iter()
             .map(|&key| {

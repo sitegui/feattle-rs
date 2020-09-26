@@ -2,8 +2,8 @@
 
 pub use crate::json_reading::FromJsonError;
 pub use crate::persist::{CurrentValue, Persist};
+pub use crate::FeattleDefinition;
 pub use crate::Feattles;
-pub use crate::FeatureDefinition;
 pub use parking_lot::{MappedRwLockReadGuard, RwLockReadGuard, RwLockWriteGuard};
 
 use crate::persist::CurrentValues;
@@ -27,7 +27,7 @@ pub struct InnerFeattles<FS> {
 }
 
 #[derive(Debug, Clone)]
-pub struct Feature<T> {
+pub struct Feattle<T> {
     key: &'static str,
     description: &'static str,
     pub value: T,
@@ -67,9 +67,9 @@ impl<P, FS> FeattlesImpl<P, FS> {
     }
 }
 
-impl<T: Clone + FeattleValue> Feature<T> {
+impl<T: Clone + FeattleValue> Feattle<T> {
     pub fn new(key: &'static str, description: &'static str, default: T) -> Self {
-        Feature {
+        Feattle {
             key,
             description,
             value: default.clone(),
@@ -78,8 +78,8 @@ impl<T: Clone + FeattleValue> Feature<T> {
         }
     }
 
-    pub fn definition(&self) -> FeatureDefinition {
-        FeatureDefinition {
+    pub fn definition(&self) -> FeattleDefinition {
+        FeattleDefinition {
             key: self.key,
             description: self.description.to_owned(),
             format: T::serialized_format(),

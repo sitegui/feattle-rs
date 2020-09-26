@@ -1,5 +1,5 @@
 use async_trait::async_trait;
-use feattle_core::persist::{CurrentValues, Persist, ValueHistory};
+use feattle_core::persist::*;
 use feattle_core::Error;
 use serde::de::DeserializeOwned;
 use serde::Serialize;

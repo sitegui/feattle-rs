@@ -1,7 +1,7 @@
 use crate::{RenderError, RenderResult, RenderedPage};
 use chrono::{DateTime, Utc};
 use feattle_core::persist::ValueHistory;
-use feattle_core::FeatureDefinition;
+use feattle_core::FeattleDefinition;
 use handlebars::Handlebars;
 use serde_json::json;
 use std::collections::BTreeMap;
@@ -65,7 +65,7 @@ impl Pages {
         })
     }
 
-    pub fn render_features(&self, definitions: Vec<FeatureDefinition>) -> RenderResult {
+    pub fn render_features(&self, definitions: Vec<FeattleDefinition>) -> RenderResult {
         let features: Vec<_> = definitions
             .into_iter()
             .map(|definition| {
@@ -87,7 +87,7 @@ impl Pages {
 
     pub fn render_feature(
         &self,
-        definition: &FeatureDefinition,
+        definition: &FeattleDefinition,
         history: &ValueHistory,
     ) -> RenderResult {
         let history = history
@@ -128,7 +128,7 @@ impl Pages {
     }
 }
 
-fn last_modification(definition: &FeatureDefinition) -> String {
+fn last_modification(definition: &FeattleDefinition) -> String {
     match (&definition.modified_at, &definition.modified_by) {
         (&Some(at), Some(by)) => format!("{} by {}", date_string(at), by),
         _ => "unknown".to_owned(),

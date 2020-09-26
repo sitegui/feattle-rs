@@ -99,6 +99,7 @@ macro_rules! feattle_enum {
 }
 
 #[macro_export]
+#[doc(hidden)]
 macro_rules! __init_field {
     ($default:expr) => {
         $default
@@ -108,6 +109,7 @@ macro_rules! __init_field {
     };
 }
 
+/// TODO: doc
 #[macro_export]
 macro_rules! feattles {
     (
@@ -118,17 +120,18 @@ macro_rules! feattles {
         ),*
         $(,)?
     }
-    ) => {
-        pub mod __feattles {
+) => {
+        struct $name<P>(__internal::FeattlesImpl<P, __Feattles>);
+
+        mod __feattles {
             use feattle_core::__internal;
             use super::*;
 
-            pub struct $name<P>(__internal::FeattlesImpl<P, __Features>);
-            pub struct __Features {
-                $($key: __internal::Feature<$type>),*
+            pub struct __Feattles {
+                $($key: __internal::Feattle<$type>),*
             }
 
-            impl __internal::FeaturesStruct for __Features {
+            impl __internal::FeattlesStruct for __Feattles {
                 fn update(
                     &mut self,
                     key: &str,
@@ -142,18 +145,18 @@ macro_rules! feattles {
             }
 
             impl<P: __internal::Persist> __internal::Feattles<P> for $name<P> {
-                type FeatureStruct = __Features;
+                type FeattleStruct = __Feattles;
 
                 fn _read(
                     &self,
-                ) -> __internal::RwLockReadGuard<'_, __internal::InnerFeattles<Self::FeatureStruct>>
+                ) -> __internal::RwLockReadGuard<'_, __internal::InnerFeattles<Self::FeattleStruct>>
                 {
                     self.0.inner_feattles.read()
                 }
 
                 fn _write(
                     &self,
-                ) -> __internal::RwLockWriteGuard<'_, __internal::InnerFeattles<Self::FeatureStruct>>
+                ) -> __internal::RwLockWriteGuard<'_, __internal::InnerFeattles<Self::FeattleStruct>>
                 {
                     self.0.inner_feattles.write()
                 }
@@ -161,9 +164,9 @@ macro_rules! feattles {
                 fn new(persistence: P) -> Self {
                     $name(__internal::FeattlesImpl::new(
                         persistence,
-                        __Features {
+                        __Feattles {
                             $(
-                                $key: __internal::Feature::new(
+                                $key: __internal::Feattle::new(
                                     stringify!($key),
                                     concat!($($description),*).trim(),
                                     $crate::__init_field!($($default)?),
@@ -181,7 +184,7 @@ macro_rules! feattles {
                     &[$(stringify!($key)),*]
                 }
 
-                fn definition(&self, key: &str) -> Option<__internal::FeatureDefinition> {
+                fn definition(&self, key: &str) -> Option<__internal::FeattleDefinition> {
                     let inner = self._read();
                     match key {
                         $(stringify!($key) => Some(inner.feattles_struct.$key.definition())),*,
@@ -201,6 +204,6 @@ macro_rules! feattles {
             }
         }
 
-        use __feattles::$name;
+        use __feattles::__Feattles;
     }
 }
