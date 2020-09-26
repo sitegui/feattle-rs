@@ -1,8 +1,12 @@
 [package]
 name = "feattle-sync"
 version = "0.1.0"
-authors = ["Guilherme Souza <19gui94@gmail.com>"]
+authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
+description = "TODO"
+repository = "https://github.com/sitegui/feattle-rs"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
