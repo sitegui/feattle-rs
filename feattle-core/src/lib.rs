@@ -71,6 +71,10 @@
 //!
 //! use b::B;
 //! ```
+//!
+//! # Optional features
+//!
+//! The feature `"uuid"` will add support for [`uuid::Uuid`].
 
 #[doc(hidden)]
 pub mod __internal;

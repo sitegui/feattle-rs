@@ -130,6 +130,7 @@ macro_rules! feattles {
             use super::*;
 
             $(#[$meta])*
+            #[derive(Debug)]
             pub struct $name<P>(__internal::FeattlesImpl<P, __Feattles>);
 
             impl<P: __internal::Persist> __internal::FeattlesPrivate<P> for $name<P> {

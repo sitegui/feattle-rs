@@ -3,10 +3,12 @@ name = "feattle-ui"
 version = "0.1.0"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
-description = "TODO"
+description = "Featture toggles for Rust, extensible and with background synchronization and administation UI"
 repository = "https://github.com/sitegui/feattle-rs"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
+keywords = ["toggle", "feature", "flag", "flipper"]
+categories = ["config", "data-structures", "development-tools", "web-programming"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
