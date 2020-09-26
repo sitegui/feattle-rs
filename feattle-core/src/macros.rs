@@ -132,19 +132,19 @@ macro_rules! feattles {
             }
 
             impl __internal::FeattlesStruct for __Feattles {
-                fn update(
+                fn try_update(
                     &mut self,
                     key: &str,
                     value: Option<__internal::CurrentValue>,
                 ) -> Result<Option<__internal::CurrentValue>, __internal::FromJsonError> {
                     match key {
-                        $(stringify!($key) => self.$key.update(value)),*,
+                        $(stringify!($key) => self.$key.try_update(value)),*,
                         _ => unreachable!(),
                     }
                 }
             }
 
-            impl<P: __internal::Persist> __internal::Feattles<P> for $name<P> {
+            impl<P: __internal::Persist> __internal::FeattlesPrivate<P> for $name<P> {
                 type FeattleStruct = __Feattles;
 
                 fn _read(
@@ -160,7 +160,9 @@ macro_rules! feattles {
                 {
                     self.0.inner_feattles.write()
                 }
+            }
 
+            impl<P: __internal::Persist> __internal::Feattles<P> for $name<P> {
                 fn new(persistence: P) -> Self {
                     $name(__internal::FeattlesImpl::new(
                         persistence,
@@ -197,7 +199,7 @@ macro_rules! feattles {
                 $(
                     pub fn $key(&self) -> __internal::MappedRwLockReadGuard<$type> {
                         __internal::RwLockReadGuard::map(self.0.inner_feattles.read(), |inner| {
-                            &inner.feattles_struct.$key.value
+                            inner.feattles_struct.$key.value()
                         })
                     }
                 )*

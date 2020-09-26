@@ -45,20 +45,36 @@ pub enum HistoryError<PersistError: Error + Send + Sync + 'static> {
     FailedPersistence(#[source] PersistError),
 }
 
+/// The main trait of this crate.
+///
+/// The struct created with [`feattles!`] will implement this trait in addition to a method for each
+/// feattle (see its documentation for details).
 #[async_trait]
-pub trait Feattles<P: Persist>: Send + Sync + 'static {
-    type FeattleStruct: FeattlesStruct;
-    fn _read(&self) -> RwLockReadGuard<InnerFeattles<Self::FeattleStruct>>;
-    fn _write(&self) -> RwLockWriteGuard<InnerFeattles<Self::FeattleStruct>>;
+pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
+    /// Create a new feattles instance, using the given persistence layer logic.
+    ///
+    /// All feattles will start with their default values. You can force an initial synchronization
+    /// with [`Feattles::update`].
     fn new(persistence: P) -> Self;
+
+    /// Return a shared reference to the persistence layer.
     fn persistence(&self) -> &P;
+
+    /// The list of all available keys.
     fn keys(&self) -> &'static [&'static str];
+
+    /// Describe one specific feattle, returning `None` if the feattle with the given name does not
+    /// exist.
     fn definition(&self, key: &str) -> Option<FeattleDefinition>;
 
+    /// The date when the feattle values were last updated from the persistence layer, if ever.
     fn last_reload(&self) -> Option<DateTime<Utc>> {
         self._read().last_reload
     }
 
+    /// Return a reference to the last synchronized data. The reference is behind a
+    /// read-write lock and will block any update until it is dropped. `None` is returned if a
+    /// successful synchronization have never happened.
     fn current_values(&self) -> Option<MappedRwLockReadGuard<CurrentValues>> {
         let inner = self._read();
         match inner.current_values.as_ref() {
@@ -69,6 +85,10 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
         }
     }
 
+    /// Reload the current feattles' data from the persistence layer, propagating any errors
+    /// produced by it.
+    ///
+    /// If the
     async fn reload(&self) -> Result<(), P::Error> {
         let current_values = self.persistence().load_current().await?;
         let mut inner = self._write();
@@ -86,7 +106,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
             Some(mut current_values) => {
                 for &key in self.keys() {
                     let value = current_values.feattles.remove(key);
-                    if let Err(error) = inner.feattles_struct.update(key, value) {
+                    if let Err(error) = inner.feattles_struct.try_update(key, value) {
                         log::error!("Failed to update {}: {:?}", key, error);
                     }
                 }
@@ -132,7 +152,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
                 .insert(key.to_owned(), new_value.clone());
 
             // Step 1
-            let old_value = inner.feattles_struct.update(key, Some(new_value.clone()))?;
+            let old_value = inner.feattles_struct.try_update(key, Some(new_value.clone()))?;
 
             (new_values, old_value)
         };
@@ -140,7 +160,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
         let rollback_step_1 = || {
             self._write()
                 .feattles_struct
-                .update(key, old_value.clone())
+                .try_update(key, old_value.clone())
                 .expect("it should work because it was the previous value for it");
         };
 
@@ -214,4 +234,13 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
 
         Ok(history.unwrap_or_default())
     }
+}
+
+/// This struct is `pub` because the macro must have access to it, but should be otherwise invisible
+/// to the users of this crate.
+#[doc(hidden)]
+pub trait FeattlesPrivate<P: Persist> {
+    type FeattleStruct: FeattlesStruct;
+    fn _read(&self) -> RwLockReadGuard<InnerFeattles<Self::FeattleStruct>>;
+    fn _write(&self) -> RwLockWriteGuard<InnerFeattles<Self::FeattleStruct>>;
 }

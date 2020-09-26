@@ -13,19 +13,51 @@ use std::str::FromStr;
 #[cfg(feature = "uuid")]
 use uuid::Uuid;
 
+/// The base trait for types that can be used for feattles.
+///
+/// This lib already implements this trait for many base types from the std lib, but the user can
+/// make their own types compatible by providing their own logic.
+///
+/// For types that are string based, it suffices to implement the somewhat simpler
+/// [`FeattleStringValue`] trait.
 pub trait FeattleValue: Debug + Sized {
+    /// Convert the value to its JSON representation.
     fn as_json(&self) -> Value;
+
+    /// Return a short overview of the current value. This is meant to give an overall idea of the
+    /// actual value. For example, it can choose to display only the first 3 items of a large list.
     fn overview(&self) -> String;
+
+    /// Parse from a JSON representation of the value, if possible.
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError>;
+
+    /// Return a precise description of a feattle type. This will be consumed, for example, by the
+    /// UI code to show an appropriate HTML form in the admin panel.
     fn serialized_format() -> SerializedFormat;
 }
 
-pub trait FeattleStringValue: FromStr + ToString + Debug {
+/// The base trait for string-types that can be used for feattles.
+///
+/// This trait should be used for types that behave like string. A blanked implementation of
+/// [`FeattleValue`] for types that implement this trait will provide the necessary compatibility
+/// to use them as feattles.
+///
+/// Note that this trait also requires that the type implements:
+/// * [`Debug`]
+/// * [`ToString`]
+/// * [`FromStr`], with a compatible error
+pub trait FeattleStringValue: FromStr + ToString + Debug
+where
+    <Self as FromStr>::Err: Error + Send + Sync + 'static,
+{
+    /// Return a precise description of a feattle type. This will be consumed, for example, by the
+    /// UI code to show an appropriate HTML form in the admin panel.
     fn serialized_string_format() -> StringFormat;
 }
 
-impl<T: FeattleStringValue> FeattleValue for T
+impl<T> FeattleValue for T
 where
+    T: FeattleStringValue,
     <T as FromStr>::Err: Error + Send + Sync + 'static,
 {
     fn as_json(&self) -> Value {
