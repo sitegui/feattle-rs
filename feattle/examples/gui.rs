@@ -28,7 +28,7 @@ feattle_enum! {
 }
 
 feattles! {
-    Features {
+    struct Features {
         extrude_mesh_terrain: bool,
         assign_mimic_propagation: bool = true,
         balance_domestic_coefficients: u8 = 1,

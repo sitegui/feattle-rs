@@ -109,11 +109,15 @@ macro_rules! __init_field {
     };
 }
 
-/// TODO: doc
+/// The main macro of this crate, used to generate a struct that will provide the Feattles
+/// functionalities.
+///
+/// See more at the [crate level](crate).
 #[macro_export]
 macro_rules! feattles {
     (
-    $name:ident {
+    $(#[$meta:meta])*
+    $visibility:vis struct $name:ident {
         $(
             $(#[doc=$description:tt])*
             $key:ident: $type:ty $(= $default:expr)?
@@ -121,28 +125,12 @@ macro_rules! feattles {
         $(,)?
     }
 ) => {
-        struct $name<P>(__internal::FeattlesImpl<P, __Feattles>);
-
         mod __feattles {
-            use feattle_core::__internal;
+            use ::feattle_core::__internal;
             use super::*;
 
-            pub struct __Feattles {
-                $($key: __internal::Feattle<$type>),*
-            }
-
-            impl __internal::FeattlesStruct for __Feattles {
-                fn try_update(
-                    &mut self,
-                    key: &str,
-                    value: Option<__internal::CurrentValue>,
-                ) -> Result<Option<__internal::CurrentValue>, __internal::FromJsonError> {
-                    match key {
-                        $(stringify!($key) => self.$key.try_update(value)),*,
-                        _ => unreachable!(),
-                    }
-                }
-            }
+            $(#[$meta])*
+            pub struct $name<P>(__internal::FeattlesImpl<P, __Feattles>);
 
             impl<P: __internal::Persist> __internal::FeattlesPrivate<P> for $name<P> {
                 type FeattleStruct = __Feattles;
@@ -187,9 +175,10 @@ macro_rules! feattles {
                 }
 
                 fn definition(&self, key: &str) -> Option<__internal::FeattleDefinition> {
+                    use __internal::FeattlesPrivate;
                     let inner = self._read();
                     match key {
-                        $(stringify!($key) => Some(inner.feattles_struct.$key.definition())),*,
+                        $(stringify!($key) => Some(inner.feattles_struct.$key.definition()),)*
                         _ => None,
                     }
                 }
@@ -204,8 +193,25 @@ macro_rules! feattles {
                     }
                 )*
             }
+
+            pub struct __Feattles {
+                $($key: __internal::Feattle<$type>),*
+            }
+
+            impl __internal::FeattlesStruct for __Feattles {
+                fn try_update(
+                    &mut self,
+                    key: &str,
+                    value: Option<__internal::CurrentValue>,
+                ) -> Result<Option<__internal::CurrentValue>, __internal::FromJsonError> {
+                    match key {
+                        $(stringify!($key) => self.$key.try_update(value),)*
+                        _ => unreachable!(),
+                    }
+                }
+            }
         }
 
-        use __feattles::__Feattles;
+        $visibility use __feattles::$name;
     }
 }

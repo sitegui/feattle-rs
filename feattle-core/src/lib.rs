@@ -1,5 +1,76 @@
-//! The base implementation of _Feattle_, based on the main macro `feattles!`. Consult the doc on
-//! the main package for more.
+//! This crate is the core implementation of the feature flags (called "feattles", for short).
+//!
+//! Its main parts are the macro [`feattles!`] together with the trait [`Feattles`].
+//!
+//! # Usage example
+//! ```
+//! use feattle_core::{feattles, Feattles};
+//! use feattle_core::persist::NoPersistence;
+//!
+//! /// Declare the struct
+//! feattles! {
+//!     struct MyFeattles {
+//!         /// Is this usage considered cool?
+//!         is_cool: bool = true,
+//!         /// Limit the number of "blings" available.
+//!         /// This will not change the number of "blengs", though!
+//!         max_blings: i32,
+//!         /// List the actions that should not be available
+//!         blocked_actions: Vec<String>,
+//!     }
+//! }
+//!
+//! /// Create a new instance (`NoPersistence` is just a mock for the persistence layer)
+//! let my_feattles = MyFeattles::new(NoPersistence);
+//!
+//! /// Read values (note the use of `*`)
+//! assert_eq!(*my_feattles.is_cool(), true);
+//! assert_eq!(*my_feattles.max_blings(), 0);
+//! assert_eq!(*my_feattles.blocked_actions(), Vec::<String>::new());
+//! ```
+//!
+//! # How it works
+//!
+//! The macro will generate a struct with the given name and visibility modifier (assuming private
+//! by default). The generated struct implements [`Feattles`] and also exposes one method for each
+//! feattle.
+//!
+//! The methods created for each feattle allow reading their current value. For example, for a
+//! feattle `is_cool: bool`, there will be a method like
+//! `pub fn is_cool(&self) -> MappedRwLockReadGuard<bool>`. Note the use of
+//! [`parking_lot::MappedRwLockReadGuard`] because the interior of the struct is stored behind a `RwLock` to
+//! control concurrent access.
+//!
+//! A feattle is created with the syntax `$key: $type [= $default]`. You can use doc coments (
+//! starting with `///`) to describe nicely what they do in your system. You can use any type that
+//! implements [`FeattleValue`] and optionally provide a default. If not provided, the default
+//! will be created with `Default::default()`.
+//!
+//! # Limitations
+//! Due to some restrictions on how the macro is written, you can only use [`feattles!`] once per
+//! module. For example, the following does not compile:
+//!
+//! ```compile_fail
+//! use feattle_core::feattles;
+//!
+//! feattles! { struct A { } }
+//! feattles! { struct B { } }
+//! ```
+//!
+//! You can work around this limitation by creating a sub-module and then re-exporting the generated
+//! struct. Note the use of `pub struct` in the second case.
+//! ```
+//! use feattle_core::feattles;
+//!
+//! feattles! { struct A { } }
+//!
+//! mod b {
+//!     use feattle_core::feattles;
+//!     feattles! { pub struct B { } }
+//! }
+//!
+//! use b::B;
+//! ```
 
 #[doc(hidden)]
 pub mod __internal;
@@ -88,7 +159,9 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
     /// Reload the current feattles' data from the persistence layer, propagating any errors
     /// produced by it.
     ///
-    /// If the
+    /// If any of the feattle values fail to be parsed from previously persisted values, their
+    /// updates will be skipped. Other feattles that parsed successfully will still be updated.
+    /// In this case, a [`log::error!`] will be generated for each time it occurs.
     async fn reload(&self) -> Result<(), P::Error> {
         let current_values = self.persistence().load_current().await?;
         let mut inner = self._write();
@@ -116,6 +189,11 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
         Ok(())
     }
 
+    /// Update a single feattle, passing the new value (in JSON representation) and the user that
+    /// is associated with this change. The change will be persisted directly.
+    ///
+    /// While the update is happening, the new value will already be observable from other
+    /// execution tasks or threads. However, if the update fails, the change will be rolled back.
     async fn update(
         &self,
         key: &str,
@@ -152,16 +230,19 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
                 .insert(key.to_owned(), new_value.clone());
 
             // Step 1
-            let old_value = inner.feattles_struct.try_update(key, Some(new_value.clone()))?;
+            let old_value = inner
+                .feattles_struct
+                .try_update(key, Some(new_value.clone()))?;
 
             (new_values, old_value)
         };
 
         let rollback_step_1 = || {
-            self._write()
+            // Note that if the old value was failing to parse, then the update will be final.
+            let _ = self
+                ._write()
                 .feattles_struct
-                .try_update(key, old_value.clone())
-                .expect("it should work because it was the previous value for it");
+                .try_update(key, old_value.clone());
         };
 
         // Step 2: load + modify + save history
@@ -210,6 +291,7 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
         Ok(())
     }
 
+    /// Return the definition for all the feattles.
     fn definitions(&self) -> Vec<FeattleDefinition> {
         self.keys()
             .iter()
@@ -220,6 +302,7 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
             .collect()
     }
 
+    /// Return the history for a single feattle. It can be potentially empty (not entries).
     async fn history(&self, key: &str) -> Result<ValueHistory, HistoryError<P::Error>> {
         // Assert the key exists
         if !self.keys().contains(&key) {

@@ -111,3 +111,27 @@ pub struct HistoryEntry {
     /// Who did that modification
     pub modified_by: String,
 }
+
+/// A mock implementation that does not store the information anywhere.
+pub struct NoPersistence;
+
+#[async_trait]
+impl Persist for NoPersistence {
+    type Error = std::io::Error;
+
+    async fn save_current(&self, _value: &CurrentValues) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    async fn load_current(&self) -> Result<Option<CurrentValues>, Self::Error> {
+        Ok(None)
+    }
+
+    async fn save_history(&self, _key: &str, _value: &ValueHistory) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    async fn load_history(&self, _key: &str) -> Result<Option<ValueHistory>, Self::Error> {
+        Ok(None)
+    }
+}
