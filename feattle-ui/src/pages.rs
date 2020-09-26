@@ -1,4 +1,4 @@
-use crate::{RenderError, RenderResult, RenderedPage};
+use crate::RenderedPage;
 use chrono::{DateTime, Utc};
 use feattle_core::persist::ValueHistory;
 use feattle_core::FeattleDefinition;
@@ -14,11 +14,23 @@ pub struct Pages {
     label: String,
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum PageError {
+    #[error("The requested page does not exist")]
+    NotFound,
+    #[error("The template failed to render")]
+    Template(#[from] handlebars::RenderError),
+    #[error("Failed to serialize or deserialize JSON")]
+    Serialization(#[from] serde_json::Error),
+}
+
 #[derive(Debug, Clone)]
 struct PublicFile {
     content: &'static [u8],
     content_type: &'static str,
 }
+
+pub type PageResult = Result<RenderedPage, PageError>;
 
 impl Pages {
     pub fn new(label: String) -> Self {
@@ -57,15 +69,15 @@ impl Pages {
         }
     }
 
-    pub fn render_public_file(&self, path: &str) -> RenderResult {
-        let file = self.public_files.get(path).ok_or(RenderError::NotFound)?;
+    pub fn render_public_file(&self, path: &str) -> PageResult {
+        let file = self.public_files.get(path).ok_or(PageError::NotFound)?;
         Ok(RenderedPage {
             content_type: file.content_type.to_owned(),
             content: file.content.to_owned(),
         })
     }
 
-    pub fn render_features(&self, definitions: Vec<FeattleDefinition>) -> RenderResult {
+    pub fn render_features(&self, definitions: Vec<FeattleDefinition>) -> PageResult {
         let features: Vec<_> = definitions
             .into_iter()
             .map(|definition| {
@@ -89,11 +101,11 @@ impl Pages {
         &self,
         definition: &FeattleDefinition,
         history: &ValueHistory,
-    ) -> RenderResult {
+    ) -> PageResult {
         let history = history
             .entries
             .iter()
-            .map(|entry| -> Result<_, RenderError> {
+            .map(|entry| -> Result<_, PageError> {
                 Ok(json!({
                     "modified_at": date_string(entry.modified_at),
                     "modified_by": entry.modified_by,
@@ -101,7 +113,7 @@ impl Pages {
                     "value_json": serde_json::to_string(&entry.value)?,
                 }))
             })
-            .collect::<Result<Vec<_>, RenderError>>()?;
+            .collect::<Result<Vec<_>, _>>()?;
 
         Self::convert_html(self.handlebars.render(
             "feature",
@@ -119,7 +131,7 @@ impl Pages {
         ))
     }
 
-    fn convert_html(rendered: Result<String, handlebars::RenderError>) -> RenderResult {
+    fn convert_html(rendered: Result<String, handlebars::RenderError>) -> PageResult {
         let content = rendered?;
         Ok(RenderedPage {
             content_type: "text/html; charset=utf-8".to_owned(),

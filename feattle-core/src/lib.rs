@@ -11,7 +11,7 @@ pub mod json_reading;
 pub mod macros;
 pub mod persist;
 
-use crate::__internal::{FeattleStruct, InnerFeattles};
+use crate::__internal::{FeattlesStruct, InnerFeattles};
 use crate::json_reading::FromJsonError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
@@ -20,15 +20,12 @@ pub use feattle_value::*;
 use parking_lot::{MappedRwLockReadGuard, RwLockReadGuard, RwLockWriteGuard};
 use persist::*;
 use serde_json::Value;
+use std::error::Error;
 use thiserror::Error;
 
-/// A boxed error, conveniently compatible with `anyhow::Error`
-///
-/// TODO: doc
-pub type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
-
+/// The error type returned by [`Feattles::update()`]
 #[derive(Error, Debug)]
-pub enum UpdateError {
+pub enum UpdateError<PersistError: Error + Send + Sync + 'static> {
     #[error("cannot update because current values were never successfully loaded from the persist layer")]
     NeverReloaded,
     #[error("the key {0} is unknown")]
@@ -36,20 +33,21 @@ pub enum UpdateError {
     #[error(transparent)]
     FailedParsing(#[from] FromJsonError),
     #[error("failed to persist new state")]
-    FailedPersistence(#[source] Error),
+    FailedPersistence(#[source] PersistError),
 }
 
+/// The error type returned by [`Feattles::history()`]
 #[derive(Error, Debug)]
-pub enum HistoryError {
+pub enum HistoryError<PersistError: Error + Send + Sync + 'static> {
     #[error("the key {0} is unknown")]
     UnknownKey(String),
     #[error("failed to load persisted state")]
-    FailedPersistence(#[source] Error),
+    FailedPersistence(#[source] PersistError),
 }
 
 #[async_trait]
 pub trait Feattles<P: Persist>: Send + Sync + 'static {
-    type FeattleStruct: FeattleStruct;
+    type FeattleStruct: FeattlesStruct;
     fn _read(&self) -> RwLockReadGuard<InnerFeattles<Self::FeattleStruct>>;
     fn _write(&self) -> RwLockWriteGuard<InnerFeattles<Self::FeattleStruct>>;
     fn new(persistence: P) -> Self;
@@ -71,7 +69,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
         }
     }
 
-    async fn reload(&self) -> Result<(), Error> {
+    async fn reload(&self) -> Result<(), P::Error> {
         let current_values = self.persistence().load_current().await?;
         let mut inner = self._write();
         let now = Utc::now();
@@ -103,7 +101,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
         key: &str,
         value: Value,
         modified_by: String,
-    ) -> Result<(), UpdateError> {
+    ) -> Result<(), UpdateError<P::Error>> {
         use UpdateError::*;
 
         // The update operation is made of 4 steps, each of which may fail:
@@ -202,7 +200,7 @@ pub trait Feattles<P: Persist>: Send + Sync + 'static {
             .collect()
     }
 
-    async fn history(&self, key: &str) -> Result<ValueHistory, HistoryError> {
+    async fn history(&self, key: &str) -> Result<ValueHistory, HistoryError<P::Error>> {
         // Assert the key exists
         if !self.keys().contains(&key) {
             return Err(HistoryError::UnknownKey(key.to_owned()));

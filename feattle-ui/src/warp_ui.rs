@@ -2,6 +2,7 @@ use crate::{AdminPanel, RenderError, RenderedPage};
 use feattle_core::persist::Persist;
 use feattle_core::Feattles;
 use serde::Deserialize;
+use std::error::Error;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use warp::http::Uri;
@@ -10,7 +11,7 @@ use warp::reply::with_header;
 use warp::{Filter, Rejection, Reply};
 
 #[derive(Debug)]
-pub struct RequestError(RenderError);
+pub struct RequestError<PersistError: Error + Send + Sync + 'static>(RenderError<PersistError>);
 
 #[derive(Debug, Deserialize)]
 struct EditFeatureForm {
@@ -95,13 +96,15 @@ pub async fn run_server<F, P>(
     .await;
 }
 
-impl Reject for RequestError {}
+impl<PersistError: Error + Send + Sync + 'static> Reject for RequestError<PersistError> {}
 
 fn to_reply(page: RenderedPage) -> impl Reply {
     with_header(page.content, "Content-Type", page.content_type)
 }
 
-fn to_rejection(error: RenderError) -> Rejection {
+fn to_rejection<PersistError: Error + Sync + Send + 'static>(
+    error: RenderError<PersistError>,
+) -> Rejection {
     if let RenderError::NotFound = error {
         not_found()
     } else {

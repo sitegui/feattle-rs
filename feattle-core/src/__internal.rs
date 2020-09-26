@@ -46,7 +46,7 @@ impl fmt::Display for ParseError {
 
 impl Error for ParseError {}
 
-pub trait FeattleStruct {
+pub trait FeattlesStruct {
     fn update(
         &mut self,
         key: &str,

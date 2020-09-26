@@ -1,5 +1,6 @@
 use feattle::*;
 use std::collections::{BTreeMap, BTreeSet};
+use std::error::Error;
 use uuid::Uuid;
 
 feattle_enum! {
@@ -52,7 +53,7 @@ feattles! {
 }
 
 #[tokio::main]
-async fn main() -> Result<(), Error> {
+async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
     use feattle_sync::persist::Disk;

@@ -12,12 +12,14 @@ pub enum FromJsonError {
         actual: &'static str,
     },
     #[error("failed to parse")]
-    ParseError { cause: Error },
+    ParseError {
+        cause: Box<dyn Error + Send + Sync + 'static>,
+    },
 }
 
 impl FromJsonError {
     /// Create a new [`FromJsonError::ParseError`] variant
-    pub fn parsing<E: std::error::Error + Send + Sync + 'static>(error: E) -> FromJsonError {
+    pub fn parsing<E: Error + Send + Sync + 'static>(error: E) -> FromJsonError {
         FromJsonError::ParseError {
             cause: Box::new(error),
         }

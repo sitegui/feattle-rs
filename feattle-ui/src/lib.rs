@@ -1,11 +1,12 @@
 mod pages;
 pub mod warp_ui;
 
-use crate::pages::Pages;
+use crate::pages::{PageError, Pages};
 use feattle_core::persist::Persist;
 use feattle_core::{Feattles, HistoryError, UpdateError};
 use serde::export::PhantomData;
 use serde_json::Value;
+use std::error::Error;
 use std::sync::Arc;
 
 pub struct AdminPanel<F, P> {
@@ -21,7 +22,7 @@ pub struct RenderedPage {
 }
 
 #[derive(Debug, thiserror::Error)]
-pub enum RenderError {
+pub enum RenderError<PersistError: Error + Send + Sync + 'static> {
     #[error("The requested page does not exist")]
     NotFound,
     #[error("The template failed to render")]
@@ -29,12 +30,22 @@ pub enum RenderError {
     #[error("Failed to serialize or deserialize JSON")]
     Serialization(#[from] serde_json::Error),
     #[error("Failed to recover history information")]
-    History(#[from] HistoryError),
+    History(#[from] HistoryError<PersistError>),
     #[error("Failed to update value")]
-    Update(#[from] UpdateError),
+    Update(#[from] UpdateError<PersistError>),
 }
 
-pub type RenderResult = Result<RenderedPage, RenderError>;
+impl<PersistError: Error + Send + Sync + 'static> From<PageError> for RenderError<PersistError> {
+    fn from(error: PageError) -> Self {
+        match error {
+            PageError::NotFound => RenderError::NotFound,
+            PageError::Template(error) => RenderError::Template(error),
+            PageError::Serialization(error) => RenderError::Serialization(error),
+        }
+    }
+}
+
+pub type RenderResult<PersistError> = Result<RenderedPage, RenderError<PersistError>>;
 
 impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
     pub fn new(feattles: Arc<F>, label: String) -> Arc<Self> {
@@ -45,20 +56,24 @@ impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
         })
     }
 
-    pub fn list_features(&self) -> RenderResult {
-        self.pages.render_features(self.feattles.definitions())
+    pub fn list_features(&self) -> RenderResult<P::Error> {
+        Ok(self.pages.render_features(self.feattles.definitions())?)
     }
 
-    pub async fn show_feature(&self, key: &str) -> RenderResult {
+    pub async fn show_feature(&self, key: &str) -> RenderResult<P::Error> {
         let definition = self
             .feattles
             .definition(&key)
             .ok_or(RenderError::NotFound)?;
         let history = self.feattles.history(&key).await?;
-        self.pages.render_feature(&definition, &history)
+        Ok(self.pages.render_feature(&definition, &history)?)
     }
 
-    pub async fn edit_feature(&self, key: &str, value_json: &str) -> Result<(), RenderError> {
+    pub async fn edit_feature(
+        &self,
+        key: &str,
+        value_json: &str,
+    ) -> Result<(), RenderError<P::Error>> {
         log::info!(
             "Received edit request for key {} with value {}",
             key,
@@ -71,7 +86,7 @@ impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
         Ok(())
     }
 
-    pub fn render_public_file(&self, path: &str) -> RenderResult {
-        self.pages.render_public_file(path)
+    pub fn render_public_file(&self, path: &str) -> RenderResult<P::Error> {
+        Ok(self.pages.render_public_file(path)?)
     }
 }
