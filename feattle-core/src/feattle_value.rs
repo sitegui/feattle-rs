@@ -128,8 +128,6 @@ impl_try_from_value_i64! {u32}
 impl_try_from_value_i64! {i32}
 impl_try_from_value_i64! {u64}
 impl_try_from_value_i64! {i64}
-impl_try_from_value_i64! {u128}
-impl_try_from_value_i64! {i128}
 impl_try_from_value_i64! {usize}
 impl_try_from_value_i64! {isize}
 
@@ -334,4 +332,221 @@ fn iter_overview<'a, T: FeattleValue + 'a>(iter: impl Iterator<Item = &'a T>) ->
     }
 
     overview
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use serde_json::json;
+
+    fn converts<T: FeattleValue + PartialEq>(value: Value, parsed: T, overview: &str) {
+        converts2(value.clone(), parsed, overview, value);
+    }
+
+    fn converts2<T: FeattleValue + PartialEq>(
+        value: Value,
+        parsed: T,
+        overview: &str,
+        converted: Value,
+    ) {
+        assert_eq!(parsed.as_json(), converted);
+        assert_eq!(parsed.overview(), overview);
+        assert_eq!(T::try_from_json(&value).ok(), Some(parsed));
+    }
+
+    fn fails<T: FeattleValue + PartialEq>(value: Value) {
+        assert_eq!(T::try_from_json(&value).ok(), None);
+    }
+
+    #[test]
+    fn bool() {
+        converts(json!(true), true, "true");
+        converts(json!(false), false, "false");
+
+        fails::<bool>(json!(0));
+        fails::<bool>(json!(null));
+
+        assert_eq!(bool::serialized_format().kind, SerializedFormatKind::Bool);
+    }
+
+    #[test]
+    fn int() {
+        fn basic<T: FeattleValue + PartialEq>(parsed: T) {
+            converts(json!(17), parsed, "17");
+            fails::<T>(json!(17.5));
+            fails::<T>(json!(null));
+            assert_eq!(T::serialized_format().kind, SerializedFormatKind::Integer);
+        }
+
+        basic(17u8);
+        basic(17i8);
+        basic(17u16);
+        basic(17i16);
+        basic(17u32);
+        basic(17i32);
+        basic(17u64);
+        basic(17i64);
+        basic(17usize);
+        basic(17isize);
+
+        fails::<u8>(json!(-17));
+        converts(json!(-17), -17i8, "-17");
+        fails::<u16>(json!(-17));
+        converts(json!(-17), -17i16, "-17");
+        fails::<u32>(json!(-17));
+        converts(json!(-17), -17i32, "-17");
+        fails::<u64>(json!(-17));
+        converts(json!(-17), -17i64, "-17");
+        fails::<usize>(json!(-17));
+        converts(json!(-17), -17isize, "-17");
+
+        let overview = u32::MAX.to_string();
+        fails::<u8>(json!(u32::MAX));
+        fails::<i8>(json!(u32::MAX));
+        fails::<u16>(json!(u32::MAX));
+        fails::<i16>(json!(u32::MAX));
+        converts(json!(u32::MAX), u32::MAX, &overview);
+        fails::<i32>(json!(u32::MAX));
+        converts(json!(u32::MAX), u32::MAX as u64, &overview);
+        converts(json!(u32::MAX), u32::MAX as i64, &overview);
+        converts(json!(u32::MAX), u32::MAX as usize, &overview);
+        converts(json!(u32::MAX), u32::MAX as isize, &overview);
+    }
+
+    #[test]
+    fn float() {
+        converts2(json!(17), 17f32, "17", json!(17.0));
+        converts2(json!(17), 17f64, "17", json!(17.0));
+        converts(json!(17.5), 17.5f32, "17.5");
+        converts(json!(17.5), 17.5f64, "17.5");
+
+        fails::<bool>(json!(null));
+
+        assert_eq!(f32::serialized_format().kind, SerializedFormatKind::Float);
+        assert_eq!(f64::serialized_format().kind, SerializedFormatKind::Float);
+    }
+
+    #[test]
+    #[cfg(feature = "uuid")]
+    fn uuid() {
+        converts(
+            json!("8886fc87-93e1-4d08-9722-9fc1411b6b96"),
+            Uuid::parse_str("8886fc87-93e1-4d08-9722-9fc1411b6b96").unwrap(),
+            "8886fc87-93e1-4d08-9722-9fc1411b6b96",
+        );
+
+        fails::<Uuid>(json!("yadayada"));
+        let kind = Uuid::serialized_format().kind;
+        match kind {
+            SerializedFormatKind::String(StringFormatKind::Pattern(_)) => {}
+            _ => panic!("invalid serialized format kind: {:?}", kind),
+        }
+    }
+
+    #[test]
+    fn string() {
+        converts(json!("17"), "17".to_owned(), "17");
+        converts(json!(""), "".to_owned(), "");
+        fails::<String>(json!(17));
+        fails::<String>(json!(null));
+        assert_eq!(
+            String::serialized_format().kind,
+            SerializedFormatKind::String(StringFormatKind::Any)
+        );
+    }
+
+    #[test]
+    fn vec() {
+        converts(json!([3, 14, 15]), vec![3i32, 14, 15], "[3, 14, 15]");
+        converts(
+            json!([3, 14, 15, 92]),
+            vec![3i32, 14, 15, 92],
+            "[3, 14, 15, ... 1 more]",
+        );
+        converts(
+            json!([3, 14, 15, 92, 65, 35]),
+            vec![3i32, 14, 15, 92, 65, 35],
+            "[3, 14, 15, ... 3 more]",
+        );
+        fails::<Vec<i32>>(json!([3, 14, "15", 92]));
+        assert_eq!(
+            Vec::<i32>::serialized_format().kind,
+            SerializedFormatKind::List(Box::new(SerializedFormatKind::Integer))
+        )
+    }
+
+    #[test]
+    fn set() {
+        converts(
+            json!([3, 14, 15]),
+            vec![3, 14, 15].into_iter().collect::<BTreeSet<i32>>(),
+            "[3, 14, 15]",
+        );
+        converts2(
+            json!([1, 2, 4, 4, 3]),
+            vec![1, 2, 3, 4].into_iter().collect::<BTreeSet<i32>>(),
+            "[1, 2, 3, ... 1 more]",
+            json!([1, 2, 3, 4]),
+        );
+        fails::<BTreeSet<i32>>(json!([3, 14, "15", 92]));
+        assert_eq!(
+            BTreeSet::<i32>::serialized_format().kind,
+            SerializedFormatKind::Set(Box::new(SerializedFormatKind::Integer))
+        )
+    }
+
+    #[test]
+    fn map() {
+        converts(
+            json!({
+                "a": 1,
+                "b": 2,
+                "x": 1,
+            }),
+            vec![
+                ("a".to_owned(), 1),
+                ("b".to_owned(), 2),
+                ("x".to_owned(), 1),
+            ]
+            .into_iter()
+            .collect::<BTreeMap<_, _>>(),
+            "{a, x: 1, b: 2}",
+        );
+        fails::<BTreeMap<String, String>>(json!({
+            "a": "1",
+            "b": 2,
+            "x": 1,
+        }));
+        assert_eq!(
+            BTreeMap::<String, i32>::serialized_format().kind,
+            SerializedFormatKind::Map(
+                StringFormatKind::Any,
+                Box::new(SerializedFormatKind::Integer)
+            )
+        )
+    }
+
+    #[test]
+    fn option() {
+        converts(json!(17), Some(17), "Some(17)");
+        converts(json!(null), None::<i32>, "None");
+        fails::<Option<i32>>(json!(17.5));
+        assert_eq!(
+            Option::<i32>::serialized_format().kind,
+            SerializedFormatKind::Optional(Box::new(SerializedFormatKind::Integer))
+        )
+    }
+
+    #[test]
+    fn choices() {
+        use crate::feattle_enum;
+        feattle_enum! {enum Choices { Red, Green, Blue }};
+
+        converts(json!("Red"), Choices::Red, "Red");
+        fails::<Choices>(json!("Black"));
+        assert_eq!(
+            Choices::serialized_format().kind,
+            SerializedFormatKind::String(StringFormatKind::Choices(&["Red", "Green", "Blue"]))
+        )
+    }
 }

@@ -232,6 +232,7 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
             new_values
                 .feattles
                 .insert(key.to_owned(), new_value.clone());
+            new_values.version += 1;
 
             // Step 1
             let old_value = inner
@@ -330,4 +331,145 @@ pub trait FeattlesPrivate<P: Persist> {
     type FeattleStruct: FeattlesStruct;
     fn _read(&self) -> RwLockReadGuard<InnerFeattles<Self::FeattleStruct>>;
     fn _write(&self) -> RwLockWriteGuard<InnerFeattles<Self::FeattleStruct>>;
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use parking_lot::Mutex;
+    use serde_json::json;
+    use std::collections::BTreeMap;
+    use std::sync::Arc;
+
+    #[derive(Debug, thiserror::Error)]
+    #[error("Some error")]
+    struct SomeError;
+
+    #[derive(Default, Clone)]
+    struct MockPersistence(Arc<Mutex<MockPersistenceInner>>);
+
+    #[derive(Default)]
+    struct MockPersistenceInner {
+        current: Option<CurrentValues>,
+        history: BTreeMap<String, ValueHistory>,
+        next_error: Option<SomeError>,
+    }
+
+    impl MockPersistence {
+        fn put_error(&self) {
+            let previous = self.0.lock().next_error.replace(SomeError);
+            assert!(previous.is_none());
+        }
+
+        fn get_error(&self) -> Result<(), SomeError> {
+            match self.0.lock().next_error.take() {
+                None => Ok(()),
+                Some(e) => Err(e),
+            }
+        }
+
+        fn unwrap_current(&self) -> CurrentValues {
+            self.0.lock().current.clone().unwrap()
+        }
+
+        fn unwrap_history(&self, key: &str) -> ValueHistory {
+            self.0.lock().history.get(key).cloned().unwrap()
+        }
+    }
+
+    #[async_trait]
+    impl Persist for MockPersistence {
+        type Error = SomeError;
+
+        async fn save_current(&self, value: &CurrentValues) -> Result<(), Self::Error> {
+            self.get_error().map(|_| {
+                self.0.lock().current = Some(value.clone());
+            })
+        }
+
+        async fn load_current(&self) -> Result<Option<CurrentValues>, Self::Error> {
+            self.get_error().map(|_| self.0.lock().current.clone())
+        }
+
+        async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), Self::Error> {
+            self.get_error().map(|_| {
+                self.0.lock().history.insert(key.to_owned(), value.clone());
+            })
+        }
+
+        async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, Self::Error> {
+            self.get_error()
+                .map(|_| self.0.lock().history.get(key).cloned())
+        }
+    }
+
+    #[tokio::test]
+    async fn test() {
+        feattles! {
+            struct Config {
+                /// A
+                a: i32,
+                b: i32 = 17
+            }
+        }
+
+        let persistence = MockPersistence::default();
+        let config = Config::new(persistence.clone());
+
+        // Initial state
+        assert_eq!(*config.a(), 0);
+        assert_eq!(*config.b(), 17);
+        assert!(Arc::ptr_eq(&config.persistence().0, &persistence.0));
+        assert_eq!(config.keys(), &["a", "b"]);
+        assert!(config.last_reload().is_none());
+        assert!(config.current_values().is_none());
+
+        // Load from empty storage
+        config.reload().await.unwrap();
+        assert_eq!(*config.a(), 0);
+        assert_eq!(*config.b(), 17);
+        let last_reload = config.last_reload();
+        assert!(last_reload.is_some());
+        assert!(config.current_values().is_some());
+
+        // Load from failing storage
+        persistence.put_error();
+        config.reload().await.unwrap_err();
+        assert_eq!(config.last_reload(), last_reload);
+
+        // Update value
+        config
+            .update("a", json!(27i32), "somebody".to_owned())
+            .await
+            .unwrap();
+        assert_eq!(*config.a(), 27);
+        let values = persistence.unwrap_current();
+        assert_eq!(values.version, 1);
+        let value = values.feattles.get("a").unwrap();
+        assert_eq!(value.modified_by, "somebody");
+        assert_eq!(value.value, json!(27i32));
+        let history = persistence.unwrap_history("a");
+        assert_eq!(history.entries.len(), 1);
+        assert_eq!(&history.entries[0].value, &json!(27i32));
+        assert_eq!(&history.entries[0].value_overview, "27");
+        assert_eq!(&history.entries[0].modified_by, "somebody");
+
+        // Failed to update
+        persistence.put_error();
+        config
+            .update("a", json!(207i32), "somebody else".to_owned())
+            .await
+            .unwrap_err();
+        assert_eq!(*config.a(), 27);
+        let values = persistence.unwrap_current();
+        assert_eq!(values.version, 1);
+        let value = values.feattles.get("a").unwrap();
+        assert_eq!(value.modified_by, "somebody");
+        assert_eq!(value.value, json!(27i32));
+        let history = persistence.unwrap_history("a");
+        assert_eq!(history.entries.len(), 1);
+        assert_eq!(&history.entries[0].value, &json!(27i32));
+        assert_eq!(&history.entries[0].value_overview, "27");
+        assert_eq!(&history.entries[0].modified_by, "somebody");
+    }
 }

@@ -69,7 +69,7 @@ pub trait Persist: Send + Sync + 'static {
 }
 
 /// Store the current values of all feature toggles
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CurrentValues {
     /// A monotonically increasing version, that can be used to detect race conditions
     pub version: i32,
@@ -82,7 +82,7 @@ pub struct CurrentValues {
 }
 
 /// Store the current value of a single feature toggle
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CurrentValue {
     /// When this modification was made
     pub modified_at: DateTime<Utc>,
@@ -113,6 +113,7 @@ pub struct HistoryEntry {
 }
 
 /// A mock implementation that does not store the information anywhere.
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub struct NoPersistence;
 
 #[async_trait]

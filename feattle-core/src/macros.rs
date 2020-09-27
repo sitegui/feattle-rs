@@ -125,94 +125,90 @@ macro_rules! feattles {
         $(,)?
     }
 ) => {
-        mod __feattles {
-            use ::feattle_core::__internal;
-            use super::*;
+        use $crate::__internal;
 
-            $(#[$meta])*
-            #[derive(Debug)]
-            pub struct $name<P>(__internal::FeattlesImpl<P, __Feattles>);
+        $(#[$meta])*
+        #[derive(Debug)]
+        $visibility struct $name<P>(__internal::FeattlesImpl<P, __Feattles>);
 
-            impl<P: __internal::Persist> __internal::FeattlesPrivate<P> for $name<P> {
-                type FeattleStruct = __Feattles;
+        impl<P: __internal::Persist> __internal::FeattlesPrivate<P> for $name<P> {
+            type FeattleStruct = __Feattles;
 
-                fn _read(
-                    &self,
-                ) -> __internal::RwLockReadGuard<'_, __internal::InnerFeattles<Self::FeattleStruct>>
-                {
-                    self.0.inner_feattles.read()
-                }
-
-                fn _write(
-                    &self,
-                ) -> __internal::RwLockWriteGuard<'_, __internal::InnerFeattles<Self::FeattleStruct>>
-                {
-                    self.0.inner_feattles.write()
-                }
+            fn _read(
+                &self,
+            ) -> __internal::RwLockReadGuard<'_, __internal::InnerFeattles<Self::FeattleStruct>>
+            {
+                self.0.inner_feattles.read()
             }
 
-            impl<P: __internal::Persist> __internal::Feattles<P> for $name<P> {
-                fn new(persistence: P) -> Self {
-                    $name(__internal::FeattlesImpl::new(
-                        persistence,
-                        __Feattles {
-                            $(
-                                $key: __internal::Feattle::new(
-                                    stringify!($key),
-                                    concat!($($description),*).trim(),
-                                    $crate::__init_field!($($default)?),
-                                )
-                            ),*
-                        },
-                    ))
-                }
+            fn _write(
+                &self,
+            ) -> __internal::RwLockWriteGuard<'_, __internal::InnerFeattles<Self::FeattleStruct>>
+            {
+                self.0.inner_feattles.write()
+            }
+        }
 
-                fn persistence(&self) -> &P {
-                    &self.0.persistence
-                }
-
-                fn keys(&self) -> &'static [&'static str] {
-                    &[$(stringify!($key)),*]
-                }
-
-                fn definition(&self, key: &str) -> Option<__internal::FeattleDefinition> {
-                    use __internal::FeattlesPrivate;
-                    let inner = self._read();
-                    match key {
-                        $(stringify!($key) => Some(inner.feattles_struct.$key.definition()),)*
-                        _ => None,
-                    }
-                }
+        impl<P: __internal::Persist> __internal::Feattles<P> for $name<P> {
+            fn new(persistence: P) -> Self {
+                $name(__internal::FeattlesImpl::new(
+                    persistence,
+                    __Feattles {
+                        $(
+                            $key: __internal::Feattle::new(
+                                stringify!($key),
+                                concat!($($description),*).trim(),
+                                $crate::__init_field!($($default)?),
+                            )
+                        ),*
+                    },
+                ))
             }
 
-            impl<P: __internal::Persist> $name<P> {
-                $(
-                    pub fn $key(&self) -> __internal::MappedRwLockReadGuard<$type> {
-                        __internal::RwLockReadGuard::map(self.0.inner_feattles.read(), |inner| {
-                            inner.feattles_struct.$key.value()
-                        })
-                    }
-                )*
+            fn persistence(&self) -> &P {
+                &self.0.persistence
             }
 
-            pub struct __Feattles {
-                $($key: __internal::Feattle<$type>),*
+            fn keys(&self) -> &'static [&'static str] {
+                &[$(stringify!($key)),*]
             }
 
-            impl __internal::FeattlesStruct for __Feattles {
-                fn try_update(
-                    &mut self,
-                    key: &str,
-                    value: Option<__internal::CurrentValue>,
-                ) -> Result<Option<__internal::CurrentValue>, __internal::FromJsonError> {
-                    match key {
-                        $(stringify!($key) => self.$key.try_update(value),)*
-                        _ => unreachable!(),
-                    }
+            fn definition(&self, key: &str) -> Option<__internal::FeattleDefinition> {
+                use __internal::FeattlesPrivate;
+                let inner = self._read();
+                match key {
+                    $(stringify!($key) => Some(inner.feattles_struct.$key.definition()),)*
+                    _ => None,
                 }
             }
         }
 
-        $visibility use __feattles::$name;
+        impl<P: __internal::Persist> $name<P> {
+            $(
+                pub fn $key(&self) -> __internal::MappedRwLockReadGuard<$type> {
+                    __internal::RwLockReadGuard::map(self.0.inner_feattles.read(), |inner| {
+                        inner.feattles_struct.$key.value()
+                    })
+                }
+            )*
+        }
+
+        #[derive(Debug)]
+        pub struct __Feattles {
+            $($key: __internal::Feattle<$type>),*
+        }
+
+        impl __internal::FeattlesStruct for __Feattles {
+            fn try_update(
+                &mut self,
+                key: &str,
+                value: Option<__internal::CurrentValue>,
+            ) -> Result<Option<__internal::CurrentValue>, __internal::FromJsonError> {
+                match key {
+                    $(stringify!($key) => self.$key.try_update(value),)*
+                    _ => unreachable!(),
+                }
+            }
+        }
     }
 }
