@@ -1,4 +1,6 @@
-pub mod persist;
+pub mod disk;
+#[cfg(feature = "s3")]
+pub mod s3;
 
 use feattle_core::persist::Persist;
 use feattle_core::Feattles;

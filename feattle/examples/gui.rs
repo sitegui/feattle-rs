@@ -56,7 +56,7 @@ feattles! {
 async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
-    use feattle_sync::persist::Disk;
+    use feattle_sync::disk::Disk;
     use std::sync::Arc;
 
     let disk_storage = Disk::new("data");
