@@ -56,12 +56,12 @@ feattles! {
 async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
-    use feattle_sync::disk::Disk;
+    use feattle_sync::Disk;
     use std::sync::Arc;
 
     let disk_storage = Disk::new("data");
     let features = Arc::new(Features::new(disk_storage));
-    tokio::spawn(BackgroundSync::new(&features).run());
+    BackgroundSync::new(&features).spawn();
     dbg!(features.last_reload());
     dbg!(features.current_values());
     for def in features.definitions() {

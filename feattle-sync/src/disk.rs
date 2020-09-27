@@ -8,6 +8,24 @@ use tokio::fs::{create_dir_all, File};
 use tokio::io;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 
+/// Persist the data in the local filesystem, under a given directory.
+///
+/// At every save action, if the directory does not exist, it will be created.
+///
+/// # Example
+/// ```
+/// use feattle_core::{feattles, Feattles};
+/// use feattle_sync::Disk;
+///
+/// feattles! {
+///     struct MyToggles {
+///         a: bool,
+///     }
+/// }
+///
+/// let my_toggles = MyToggles::new(Disk::new("some/local/directory"));
+/// ```
+#[derive(Debug, Clone)]
 pub struct Disk {
     dir: PathBuf,
 }
@@ -57,5 +75,17 @@ impl Persist for Disk {
 
     async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, Self::Error> {
         self.load(&format!("history-{}.json", key)).await
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::tests::test_persistence;
+
+    #[tokio::test]
+    async fn disk() {
+        let dir = tempfile::TempDir::new().unwrap();
+        test_persistence(Disk::new(dir.path())).await;
     }
 }

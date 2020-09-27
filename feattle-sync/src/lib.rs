@@ -1,80 +1,30 @@
-use std::sync::{Arc, Weak};
-use std::time::Duration;
+//! This crate is the implementation for some synchronization strategies for the feature flags
+//! (called "feattles", for short).
+//!
+//! The crate [`feattle_core`] provides the trait [`feattle_core::persist::Persist`] as the
+//! extension point to implementors of the persistence layer logic. This crates has some useful
+//! concrete implementations: [`Disk`] and [`S3`].
+//!
+//! It also provides a simple way to poll the persistence layer for updates in [`BackgroundSync`].
 
-use tokio::time::delay_for;
-
-use feattle_core::persist::Persist;
-use feattle_core::Feattles;
-
-pub mod disk;
+mod background_sync;
+mod disk;
 #[cfg(feature = "s3")]
-pub mod s3;
+mod s3;
 
-pub struct BackgroundSync<F> {
-    ok_interval: Duration,
-    err_interval: Duration,
-    feattles: Weak<F>,
-}
-
-impl<F> BackgroundSync<F> {
-    pub fn new(feattles: &Arc<F>) -> Self {
-        BackgroundSync {
-            ok_interval: Duration::from_secs(30),
-            err_interval: Duration::from_secs(30),
-            feattles: Arc::downgrade(feattles),
-        }
-    }
-
-    pub fn interval(&mut self, value: Duration) -> &mut Self {
-        self.ok_interval = value;
-        self.err_interval = value;
-        self
-    }
-
-    pub fn ok_interval(&mut self, value: Duration) -> &mut Self {
-        self.ok_interval = value;
-        self
-    }
-
-    pub fn err_interval(&mut self, value: Duration) -> &mut Self {
-        self.err_interval = value;
-        self
-    }
-
-    pub async fn run<P>(self)
-    where
-        F: Feattles<P>,
-        P: Persist,
-    {
-        while let Some(feattles) = self.feattles.upgrade() {
-            match feattles.reload().await {
-                Ok(()) => {
-                    log::debug!("Feattles updated");
-                    delay_for(self.ok_interval).await;
-                }
-                Err(err) => {
-                    log::error!("Failed to sync Feattles: {:?}", err);
-                    delay_for(self.err_interval).await;
-                }
-            }
-        }
-
-        log::info!("Stop background sync since Feattles got dropped")
-    }
-}
+pub use background_sync::*;
+pub use disk::*;
+#[cfg(feature = "s3")]
+pub use s3::*;
 
 #[cfg(test)]
-mod tests {
+pub mod tests {
     use chrono::Utc;
     use serde_json::json;
 
-    use feattle_core::persist::{CurrentValue, CurrentValues, HistoryEntry, ValueHistory};
+    use feattle_core::persist::{CurrentValue, CurrentValues, HistoryEntry, Persist, ValueHistory};
 
-    use crate::disk::Disk;
-
-    use super::*;
-
-    async fn test_persistence<P: Persist>(persistence: P) {
+    pub async fn test_persistence<P: Persist>(persistence: P) {
         // Empty state
         assert_eq!(persistence.load_current().await.unwrap(), None);
         assert_eq!(persistence.load_history("key").await.unwrap(), None);
@@ -116,73 +66,5 @@ mod tests {
             Some(history)
         );
         assert_eq!(persistence.load_history("key2").await.unwrap(), None);
-    }
-
-    #[tokio::test]
-    async fn disk() {
-        let dir = tempfile::TempDir::new().unwrap();
-        test_persistence(Disk::new(dir.path())).await;
-    }
-
-    #[tokio::test]
-    #[cfg(feature = "s3")]
-    async fn s3() {
-        use crate::s3::S3;
-        use rusoto_core::Region;
-        use rusoto_s3::{
-            Delete, DeleteObjectsRequest, ListObjectsV2Request, ObjectIdentifier, S3Client,
-            S3 as RusotoS3,
-        };
-        use std::env;
-
-        dotenv::dotenv().ok();
-
-        // Please set the environment variables AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY,
-        // AWS_REGION, S3_BUCKET and S3_KEY_PREFIX accordingly
-        let client = S3Client::new(Region::default());
-        let bucket = env::var("S3_BUCKET").unwrap();
-        let prefix = env::var("S3_KEY_PREFIX").unwrap();
-
-        // Clear all previous objects
-        let objects_to_delete = client
-            .list_objects_v2(ListObjectsV2Request {
-                bucket: bucket.clone(),
-                prefix: Some(prefix.clone()),
-                ..Default::default()
-            })
-            .await
-            .unwrap()
-            .contents
-            .unwrap_or_default();
-        let keys_to_delete: Vec<_> = objects_to_delete
-            .into_iter()
-            .filter_map(|o| o.key)
-            .collect();
-
-        if !keys_to_delete.is_empty() {
-            println!(
-                "Will first clear previous objects in S3: {:?}",
-                keys_to_delete
-            );
-            client
-                .delete_objects(DeleteObjectsRequest {
-                    bucket: bucket.clone(),
-                    delete: Delete {
-                        objects: keys_to_delete
-                            .into_iter()
-                            .map(|key| ObjectIdentifier {
-                                key,
-                                version_id: None,
-                            })
-                            .collect(),
-                        ..Default::default()
-                    },
-                    ..Default::default()
-                })
-                .await
-                .unwrap();
-        }
-
-        test_persistence(S3::new(client, bucket, prefix)).await;
     }
 }

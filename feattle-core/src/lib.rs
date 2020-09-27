@@ -46,6 +46,12 @@
 //! implements [`FeattleValue`] and optionally provide a default. If not provided, the default
 //! will be created with `Default::default()`.
 //!
+//! # Updating values
+//! This crate only disposes of low-level methods to load current feattles with [`Feattles::reload()`]
+//! and update their values with [`Feattles::update()`]. Please look for the crates
+//! [feattle-sync](https://crates.io/crates/feattle-sync) and
+//! [feattle-ui](https://crates.io/crates/feattle-ui) for higher-level functionalities.
+//!
 //! # Limitations
 //! Due to some restrictions on how the macro is written, you can only use [`feattles!`] once per
 //! module. For example, the following does not compile:
@@ -123,7 +129,7 @@ pub enum HistoryError<PersistError: Error + Send + Sync + 'static> {
 /// The main trait of this crate.
 ///
 /// The struct created with [`feattles!`] will implement this trait in addition to a method for each
-/// feattle (see its documentation for details).
+/// feattle. Read more at the [crate documentation](crate).
 #[async_trait]
 pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
     /// Create a new feattles instance, using the given persistence layer logic.
