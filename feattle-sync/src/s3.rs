@@ -58,7 +58,7 @@ impl S3 {
     }
 
     async fn save<T: Serialize>(&self, name: &str, value: T) -> Result<(), S3Error> {
-        let key = format!("{}/{}", self.prefix, name);
+        let key = format!("{}{}", self.prefix, name);
         let contents = serde_json::to_string(&value)?;
         self.client
             .put_object(PutObjectRequest {
@@ -72,7 +72,7 @@ impl S3 {
     }
 
     async fn load<T: DeserializeOwned>(&self, name: &str) -> Result<Option<T>, S3Error> {
-        let key = format!("{}/{}", self.prefix, name);
+        let key = format!("{}{}", self.prefix, name);
         match self
             .client
             .get_object(GetObjectRequest {

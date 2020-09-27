@@ -93,14 +93,14 @@ pub struct CurrentValue {
 }
 
 /// Store the history of modification of a single feature toggle
-#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct ValueHistory {
     /// The entries are not necessarily stored in any specific order
     pub entries: Vec<HistoryEntry>,
 }
 
 /// Store the value at a given point in time of a single feature toggle
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HistoryEntry {
     /// The value, expressed in JSON
     pub value: Value,
