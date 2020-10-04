@@ -3,7 +3,7 @@ name = "feattle"
 version = "0.2.1"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
-description = "Featture toggles for Rust, extensible and with background synchronization and administation UI"
+description = "Featture toggles for Rust, extensible and with background synchronization and administration UI"
 repository = "https://github.com/sitegui/feattle-rs"
 license = "MIT OR Apache-2.0"
 readme = "README.md"
@@ -13,8 +13,9 @@ categories = ["config", "data-structures", "development-tools", "web-programming
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-use_uuid = ["feattle-core/uuid"]
-use_warp = ["feattle-ui/warp"]
+s3 = ["feattle-sync/s3"]
+uuid = ["feattle-core/uuid"]
+warp = ["feattle-ui/warp"]
 
 [dependencies]
 feattle-core = { path = "../feattle-core" }
@@ -22,14 +23,17 @@ feattle-sync = { path = "../feattle-sync" }
 feattle-ui = { path = "../feattle-ui" }
 
 [dev-dependencies]
+dotenv = "0.15.0"
 env_logger = "0.7.1"
+rusoto_core = { version = "0.45.0" }
+rusoto_s3 = { version = "0.45.0" }
 serde = { version = "1.0.115", features = ["derive"] }
 serde_json = "1.0.57"
+uuid_original = { package = "uuid", version = "0.8.1" }
+warp_original = { package = "warp", version = "0.2.4" }
 tokio = { version = "0.2.22", features = ["full"] }
-uuid = "0.8.1"
-warp = "0.2.4"
 
 [[example]]
-name = "gui"
-path = "examples/gui.rs"
-required-features = ["use_uuid", "use_warp"]
+name = "full"
+path = "examples/full.rs"
+required-features = ["s3", "uuid", "warp"]

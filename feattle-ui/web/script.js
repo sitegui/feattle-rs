@@ -172,7 +172,7 @@ class FeattleEditor {
             }
         } else if (format.tag === 'List' || format.tag === 'Set') {
             assert(Array.isArray(value), () => `${value} is not an array`)
-            value.every(el => this._check(format.content, el))
+            value.forEach(el => this._check(format.content, el))
         } else if (format.tag === 'Map') {
             assert(
                 value !== null &&
@@ -181,7 +181,7 @@ class FeattleEditor {
             )
             let keyFormat = format.content[0]
             let elFormat = format.content[1]
-            Object.entries(value).every(([key, el]) => {
+            Object.entries(value).forEach(([key, el]) => {
                 this._checkString(keyFormat, key)
                 this._check(elFormat, el)
             })
