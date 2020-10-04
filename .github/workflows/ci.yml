@@ -17,7 +17,7 @@ jobs:
           override: true
       - uses: actions-rs/cargo@v1
         with:
-          command: test
+          command: test --all-features
 
   rustfmt:
     name: Rustfmt
@@ -36,7 +36,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: fmt
-          args: --all -- --check
+          args: --all --all-features -- --check
 
   clippy:
     name: Clippy
@@ -55,7 +55,7 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: clippy
-          args: -- -D warnings
+          args: --all-features -- -D warnings
 
   coverage:
     name: Code coverage
@@ -71,7 +71,7 @@ jobs:
       - name: Run cargo-tarpaulin
         uses: actions-rs/tarpaulin@v0.1
         with:
-          args: '--ignore-tests --out Lcov'
+          args: '--all-features --ignore-tests --out Lcov'
       - name: Upload to Coveralls
         # upload only if push
         if: ${{ github.event_name == 'push' }}
