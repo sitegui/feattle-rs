@@ -82,20 +82,19 @@ impl<F> BackgroundSync<F> {
     {
         tokio::spawn(async move {
             while let Some(feattles) = self.feattles.upgrade() {
-                println!("Try to update {:?}", tokio::time::Instant::now());
                 match feattles.reload().await {
                     Ok(()) => {
-                        println!("Feattles updated");
-                        delay_for(dbg!(self.ok_interval)).await;
+                        log::debug!("Feattles updated");
+                        delay_for(self.ok_interval).await;
                     }
                     Err(err) => {
-                        println!("Failed to sync Feattles: {:?}", err);
-                        delay_for(dbg!(self.err_interval)).await;
+                        log::warn!("Failed to sync Feattles: {:?}", err);
+                        delay_for(self.err_interval).await;
                     }
                 }
             }
 
-            println!("Stop background sync since Feattles got dropped")
+            log::info!("Stop background sync since Feattles got dropped")
         })
     }
 }
@@ -108,28 +107,30 @@ mod tests {
     use feattle_core::{feattles, Feattles};
     use parking_lot::Mutex;
     use tokio::time;
+    use tokio::time::Instant;
 
     #[derive(Debug, thiserror::Error)]
     #[error("Some error")]
     struct SomeError;
 
-    #[derive(Clone, Default)]
-    struct MockPersistence(Arc<Mutex<MockPersistenceInner>>);
-
-    #[derive(Default)]
-    struct MockPersistenceInner {
-        load_current_calls: i32,
-        next_error: Option<SomeError>,
+    #[derive(Clone)]
+    struct MockPersistence {
+        call_instants: Arc<Mutex<Vec<Instant>>>,
     }
 
     impl MockPersistence {
-        fn load_current_calls(&self) -> i32 {
-            self.0.lock().load_current_calls
+        fn new() -> Self {
+            MockPersistence {
+                call_instants: Arc::new(Mutex::new(vec![Instant::now()])),
+            }
         }
 
-        fn put_error(&self) {
-            let previous = self.0.lock().next_error.replace(SomeError);
-            assert!(previous.is_none());
+        fn call_intervals(&self) -> Vec<Duration> {
+            self.call_instants
+                .lock()
+                .windows(2)
+                .map(|instants| instants[1] - instants[0])
+                .collect()
         }
     }
 
@@ -140,15 +141,13 @@ mod tests {
             unimplemented!()
         }
         async fn load_current(&self) -> Result<Option<CurrentValues>, Self::Error> {
-            let next_error = {
-                let mut inner = self.0.lock();
-                inner.load_current_calls += 1;
-                inner.next_error.take()
-            };
-            tokio::task::yield_now().await;
-            match next_error {
-                None => Ok(None),
-                Some(e) => Err(e),
+            let mut call_instants = self.call_instants.lock();
+            call_instants.push(Instant::now());
+            if call_instants.len() == 3 {
+                // Second call returns an error
+                Err(SomeError)
+            } else {
+                Ok(None)
             }
         }
         async fn save_history(&self, _key: &str, _value: &ValueHistory) -> Result<(), Self::Error> {
@@ -159,21 +158,6 @@ mod tests {
         }
     }
 
-    async fn measure_time(
-        persistence: &MockPersistence,
-        target_calls: i32,
-        min_time: u64,
-        max_time: u64,
-    ) {
-        let start = time::Instant::now();
-        while persistence.load_current_calls() != target_calls {
-            tokio::task::yield_now().await;
-        }
-        let seconds = start.elapsed().as_secs();
-        assert!(seconds >= min_time, "{} >= {}", seconds, min_time);
-        assert!(seconds <= max_time, "{} <= {}", seconds, max_time);
-    }
-
     #[tokio::test]
     async fn test() {
         feattles! {
@@ -182,31 +166,31 @@ mod tests {
 
         time::pause();
 
-        let persistence = MockPersistence::default();
+        let persistence = MockPersistence::new();
         let toggles = Arc::new(MyToggles::new(persistence.clone()));
         BackgroundSync::new(&toggles).spawn();
-        assert_eq!(persistence.load_current_calls(), 0);
 
         // First update: success
-        measure_time(&persistence, 1, 0, 1).await;
-
         // Second update after 30s: fails
-        println!("second update");
-        persistence.put_error();
-        while persistence.load_current_calls() != 2 {
-            tokio::task::yield_now().await;
-        }
-
-        // Third update after 60s
-        println!("third update");
-        while persistence.load_current_calls() != 3 {
+        // Third update after 60s: success
+        // Forth update after 30s
+        loop {
+            let call_intervals = persistence.call_intervals();
+            if call_intervals.len() == 4 {
+                assert_eq!(call_intervals[0].as_secs_f32().round() as i32, 0);
+                assert_eq!(call_intervals[1].as_secs_f32().round() as i32, 30);
+                assert_eq!(call_intervals[2].as_secs_f32().round() as i32, 60);
+                assert_eq!(call_intervals[3].as_secs_f32().round() as i32, 30);
+                break;
+            }
             tokio::task::yield_now().await;
         }
 
         // No more updates
         drop(toggles);
-        time::advance(Duration::from_secs(30)).await;
-        tokio::task::yield_now().await;
-        assert_eq!(persistence.load_current_calls(), 3);
+        for _ in 0..5 {
+            tokio::task::yield_now().await;
+        }
+        assert_eq!(persistence.call_intervals().len(), 4);
     }
 }
