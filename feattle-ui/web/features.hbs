@@ -5,19 +5,25 @@
     {{#*inline "content"}}
         <h1 class="my-4">Current Values</h1>
 
-        {{#each features}}
-            <div class="my-2">
-                <h2>{{ this.key }} <a href="/feature/{{ this.key }}" class="btn btn-primary btn-sm">Edit</a>
-                </h2>
-                <p>{{ this.description }}</p>
-                <p>
-                    <strong>Type</strong>: <code>{{ this.format }}</code><br>
-                    <strong>Last modification</strong>: {{ this.last_modification }}<br>
-                    <strong>Value</strong>: <code>{{ this.value_overview }}</code>
-                </p>
-            </div>
-        {{/each}}
-        <h2></h2>
+        <div class="features-struct">
+            <span class="doc">/// <span class="doc-keyword">Last reload</span>: {{ last_reload }}</span><br>
+            <span class="doc">/// <span class="doc-keyword">Version</span>: {{ version }}</span><br>
+            <span class="keyword">struct</span> Feattles {<br>
+            <span class="tab">
+            {{#each features}}
+                {{#if @index }}<br>{{/if}}
+                {{#if this.description }}
+                    <span class="doc">/// {{ this.description }}</span><br>
+                    <span class="doc">///</span><br>
+                {{/if}}
+                <span class="doc">/// <span class="doc-keyword">Last modification</span>: {{ this.last_modification }}</span> - <a href="/feature/{{ this.key }}" class="link">edit</a><br>
+                <span class="field">{{ this.key }}</span>:
+                <span class="keyword">{{ this.format }}</span> =
+                {{ this.value_overview }}<span class="keyword">,</span><br>
+            {{/each}}
+            </span>
+            }
+        </div>
     {{/inline}}
 {{/layout}}
 

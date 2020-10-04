@@ -29,8 +29,11 @@ feattle_enum! {
 
 feattles! {
     struct Features {
+        /// Does something nice
         extrude_mesh_terrain: bool,
+        /// Please do not change it
         assign_mimic_propagation: bool = true,
+        /// Should usually be 17
         balance_domestic_coefficients: u8 = 1,
         invert_career_ladder: i32 = 2,
         concatenate_vertex_nodes: f32 = 3.4,

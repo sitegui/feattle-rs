@@ -1,6 +1,6 @@
 use crate::RenderedPage;
 use chrono::{DateTime, Utc};
-use feattle_core::persist::ValueHistory;
+use feattle_core::persist::{CurrentValues, ValueHistory};
 use feattle_core::FeattleDefinition;
 use handlebars::Handlebars;
 use serde_json::json;
@@ -35,32 +35,35 @@ pub type PageResult = Result<RenderedPage, PageError>;
 impl Pages {
     pub fn new(label: String) -> Self {
         let mut handlebars = Handlebars::new();
-
-        handlebars
-            .register_template_string("layout", include_str!("../web/layout.hbs"))
-            .expect("The handlebars template should be valid");
-        handlebars
-            .register_template_string("features", include_str!("../web/features.hbs"))
-            .expect("The handlebars template should be valid");
-        handlebars
-            .register_template_string("feature", include_str!("../web/feature.hbs"))
-            .expect("The handlebars template should be valid");
+        macro_rules! register_template {
+            ($name:expr) => {
+                handlebars
+                    .register_template_string(
+                        $name,
+                        include_str!(concat!("../web/", $name, ".hbs")),
+                    )
+                    .expect("The handlebars template should be valid");
+            };
+        }
+        register_template!("layout");
+        register_template!("features");
+        register_template!("feature");
 
         let mut public_files = BTreeMap::new();
-        public_files.insert(
-            "script.js",
-            PublicFile {
-                content: include_bytes!("../web/script.js"),
-                content_type: "application/javascript",
-            },
-        );
-        public_files.insert(
-            "favicon-32x32.png",
-            PublicFile {
-                content: include_bytes!("../web/favicon-32x32.png"),
-                content_type: "image/png",
-            },
-        );
+        macro_rules! insert_public_file {
+            ($name:expr, $content_type:expr) => {
+                public_files.insert(
+                    $name,
+                    PublicFile {
+                        content: include_bytes!(concat!("../web/", $name)),
+                        content_type: $content_type,
+                    },
+                );
+            };
+        }
+        insert_public_file!("script.js", "application/javascript");
+        insert_public_file!("style.css", "text/css");
+        insert_public_file!("favicon-32x32.png", "image/png");
 
         Pages {
             handlebars: Arc::new(handlebars),
@@ -77,23 +80,45 @@ impl Pages {
         })
     }
 
-    pub fn render_features(&self, definitions: Vec<FeattleDefinition>) -> PageResult {
+    pub fn render_features(
+        &self,
+        definitions: &[FeattleDefinition],
+        last_reload: Option<DateTime<Utc>>,
+        current_values: Option<&CurrentValues>,
+    ) -> PageResult {
         let features: Vec<_> = definitions
-            .into_iter()
+            .iter()
             .map(|definition| {
                 json!({
                     "key": definition.key,
                     "format": definition.format.tag,
                     "description": definition.description,
                     "value_overview": definition.value_overview,
-                    "last_modification": last_modification(&definition),
+                    "last_modification": last_modification(&definition, last_reload.is_some()),
                 })
             })
             .collect();
+        let version = match current_values {
+            None => "unknown".to_owned(),
+            Some(values) => format!(
+                "{}, created at {}",
+                values.version,
+                date_string(values.date)
+            ),
+        };
+        let last_reload_str = match last_reload {
+            None => "never".to_owned(),
+            Some(date) => date_string(date),
+        };
 
         Self::convert_html(self.handlebars.render(
             "features",
-            &json!({ "features": features, "label": self.label }),
+            &json!({
+                 "features": features,
+                 "label": self.label,
+                 "last_reload": last_reload_str,
+                 "version": version,
+            }),
         ))
     }
 
@@ -101,6 +126,7 @@ impl Pages {
         &self,
         definition: &FeattleDefinition,
         history: &ValueHistory,
+        last_reload: Option<DateTime<Utc>>,
     ) -> PageResult {
         let history = history
             .entries
@@ -122,7 +148,7 @@ impl Pages {
                 "format": definition.format.tag,
                 "description": definition.description,
                 "value_overview": definition.value_overview,
-                "last_modification": last_modification(&definition),
+                "last_modification": last_modification(&definition, last_reload.is_some() ),
                 "format_json": serde_json::to_string(&definition.format.kind)?,
                 "value_json": serde_json::to_string(&definition.value)?,
                 "label": self.label,
@@ -140,10 +166,16 @@ impl Pages {
     }
 }
 
-fn last_modification(definition: &FeattleDefinition) -> String {
+fn last_modification(definition: &FeattleDefinition, reloaded: bool) -> String {
     match (&definition.modified_at, &definition.modified_by) {
         (&Some(at), Some(by)) => format!("{} by {}", date_string(at), by),
-        _ => "unknown".to_owned(),
+        _ => {
+            if reloaded {
+                "never".to_owned()
+            } else {
+                "unknown".to_owned()
+            }
+        }
     }
 }
 

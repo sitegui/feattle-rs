@@ -57,7 +57,11 @@ impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
     }
 
     pub fn list_features(&self) -> RenderResult<P::Error> {
-        Ok(self.pages.render_features(self.feattles.definitions())?)
+        Ok(self.pages.render_features(
+            &self.feattles.definitions(),
+            self.feattles.last_reload(),
+            self.feattles.current_values().as_deref(),
+        )?)
     }
 
     pub async fn show_feature(&self, key: &str) -> RenderResult<P::Error> {
@@ -66,7 +70,9 @@ impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
             .definition(&key)
             .ok_or(RenderError::NotFound)?;
         let history = self.feattles.history(&key).await?;
-        Ok(self.pages.render_feature(&definition, &history)?)
+        Ok(self
+            .pages
+            .render_feature(&definition, &history, self.feattles.last_reload())?)
     }
 
     pub async fn edit_feature(
