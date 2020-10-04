@@ -7,7 +7,7 @@
 //! use feattle_core::{feattles, Feattles};
 //! use feattle_core::persist::NoPersistence;
 //!
-//! /// Declare the struct
+//! // Declare the struct
 //! feattles! {
 //!     struct MyFeattles {
 //!         /// Is this usage considered cool?
@@ -20,10 +20,10 @@
 //!     }
 //! }
 //!
-//! /// Create a new instance (`NoPersistence` is just a mock for the persistence layer)
+//! // Create a new instance (`NoPersistence` is just a mock for the persistence layer)
 //! let my_feattles = MyFeattles::new(NoPersistence);
 //!
-//! /// Read values (note the use of `*`)
+//! // Read values (note the use of `*`)
 //! assert_eq!(*my_feattles.is_cool(), true);
 //! assert_eq!(*my_feattles.max_blings(), 0);
 //! assert_eq!(*my_feattles.blocked_actions(), Vec::<String>::new());
@@ -80,7 +80,7 @@
 //!
 //! # Optional features
 //!
-//! The feature `"uuid"` will add support for [`uuid::Uuid`].
+//! - **uuid**: will add support for [`uuid::Uuid`].
 
 #[doc(hidden)]
 pub mod __internal;
@@ -102,28 +102,39 @@ use parking_lot::{MappedRwLockReadGuard, RwLockReadGuard, RwLockWriteGuard};
 use persist::*;
 use serde_json::Value;
 use std::error::Error;
+use std::fmt::Debug;
 use thiserror::Error;
 
 /// The error type returned by [`Feattles::update()`]
 #[derive(Error, Debug)]
 pub enum UpdateError<PersistError: Error + Send + Sync + 'static> {
+    /// Cannot update because current values were never successfully loaded from the persist layer
     #[error("cannot update because current values were never successfully loaded from the persist layer")]
     NeverReloaded,
+    /// The key is unknown
     #[error("the key {0} is unknown")]
     UnknownKey(String),
-    #[error(transparent)]
-    FailedParsing(#[from] FromJsonError),
+    /// Failed to parse the value from JSON
+    #[error("failed to parse the value from JSON")]
+    Parsing(
+        #[source]
+        #[from]
+        FromJsonError,
+    ),
+    /// Failed to persist new state
     #[error("failed to persist new state")]
-    FailedPersistence(#[source] PersistError),
+    Persistence(#[source] PersistError),
 }
 
 /// The error type returned by [`Feattles::history()`]
 #[derive(Error, Debug)]
 pub enum HistoryError<PersistError: Error + Send + Sync + 'static> {
+    /// The key is unknown
     #[error("the key {0} is unknown")]
     UnknownKey(String),
+    /// Failed to load persisted state
     #[error("failed to load persisted state")]
-    FailedPersistence(#[source] PersistError),
+    Persistence(#[source] PersistError),
 }
 
 /// The main trait of this crate.
@@ -263,7 +274,7 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
             .await
             .map_err(|err| {
                 rollback_step_1();
-                FailedPersistence(err)
+                Persistence(err)
             })?
             .unwrap_or_default();
 
@@ -284,7 +295,7 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
             .await
             .map_err(|err| {
                 rollback_step_1();
-                FailedPersistence(err)
+                Persistence(err)
             })?;
 
         // Step 3
@@ -293,7 +304,7 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
             if let Err(err) = self.persistence().save_history(key, &old_history).await {
                 log::warn!("Failed to rollback history for {}: {:?}", key, err);
             }
-            return Err(FailedPersistence(err));
+            return Err(Persistence(err));
         }
 
         // Step 4
@@ -324,7 +335,7 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
             .persistence()
             .load_history(key)
             .await
-            .map_err(HistoryError::FailedPersistence)?;
+            .map_err(HistoryError::Persistence)?;
 
         Ok(history.unwrap_or_default())
     }

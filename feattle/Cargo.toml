@@ -14,6 +14,7 @@ categories = ["config", "data-structures", "development-tools", "web-programming
 
 [features]
 use_uuid = ["feattle-core/uuid"]
+use_warp = ["feattle-ui/warp"]
 
 [dependencies]
 feattle-core = { path = "../feattle-core" }
@@ -31,4 +32,4 @@ warp = "0.2.4"
 [[example]]
 name = "gui"
 path = "examples/gui.rs"
-required-features = ["use_uuid"]
+required-features = ["use_uuid", "use_warp"]

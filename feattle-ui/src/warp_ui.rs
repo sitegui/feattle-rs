@@ -11,14 +11,39 @@ use warp::reply::with_header;
 use warp::{Filter, Rejection, Reply};
 
 #[derive(Debug)]
-pub struct RequestError<PersistError: Error + Send + Sync + 'static>(RenderError<PersistError>);
+struct RequestError<PersistError: Error + Send + Sync + 'static>(RenderError<PersistError>);
 
 #[derive(Debug, Deserialize)]
 struct EditFeatureForm {
     value_json: String,
 }
 
-pub async fn run_server<F, P>(
+/// Run the given admin panel using [`warp`] framework.
+///
+/// To use it, make sure to activate the cargo feature `"warp"` in your `Cargo.toml`.
+///
+/// # Example
+/// ```no_run
+/// # #[tokio::main]
+/// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// use feattle_ui::{AdminPanel, run_warp_server};
+/// use feattle_core::{feattles, Feattles};
+/// use feattle_core::persist::NoPersistence;
+/// use std::sync::Arc;
+///
+/// feattles! {
+///     struct MyToggles { a: bool, b: i32 }
+/// }
+///
+/// // `NoPersistence` here is just a mock for the sake of the example
+/// let my_toggles = Arc::new(MyToggles::new(NoPersistence));
+/// let admin_panel = Arc::new(AdminPanel::new(my_toggles, "Project Panda - DEV".to_owned()));
+///
+/// run_warp_server(admin_panel, ([127, 0, 0, 1], 3030)).await;
+/// # Ok(())
+/// # }
+/// ```
+pub async fn run_warp_server<F, P>(
     admin_panel: Arc<AdminPanel<F, P>>,
     addr: impl Into<SocketAddr> + 'static,
 ) where

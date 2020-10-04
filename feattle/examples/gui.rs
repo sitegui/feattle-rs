@@ -71,8 +71,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
         println!("{} = {}", def.key, serde_json::to_string(&def.format)?);
     }
 
-    let panel = AdminPanel::new(features.clone(), "gui".to_owned());
-    warp_ui::run_server(panel, ([127, 0, 0, 1], 3030)).await;
+    let panel = Arc::new(AdminPanel::new(features.clone(), "gui".to_owned()));
+    run_warp_server(panel, ([127, 0, 0, 1], 3030)).await;
 
     Ok(())
 }

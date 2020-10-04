@@ -6,6 +6,10 @@
 //! concrete implementations: [`Disk`] and [`S3`].
 //!
 //! It also provides a simple way to poll the persistence layer for updates in [`BackgroundSync`].
+//!
+//! # Optional features
+//!
+//! - **s3**: provides [`S3`] to integrate with AWS' S3
 
 mod background_sync;
 mod disk;
