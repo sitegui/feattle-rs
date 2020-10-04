@@ -1,6 +1,6 @@
 [package]
 name = "feattle-core"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
 description = "Featture toggles for Rust, extensible and with background synchronization and administation UI"
@@ -24,3 +24,6 @@ uuid = { version = "0.8.1", optional = true }
 
 [dev-dependencies]
 tokio = { version = "0.2.22", features = ["macros", "rt-core"] }
+
+[package.metadata.docs.rs]
+all-features = true

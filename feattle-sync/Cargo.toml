@@ -1,6 +1,6 @@
 [package]
 name = "feattle-sync"
-version = "0.2.0"
+version = "0.2.1"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
 description = "Featture toggles for Rust, extensible and with background synchronization and administation UI"
@@ -32,3 +32,6 @@ dotenv = "0.15.0"
 parking_lot = "0.11.0"
 tempfile = "3.1.0"
 tokio = { version = "0.2.22", features = ["macros", "rt-core", "test-util"] }
+
+[package.metadata.docs.rs]
+all-features = true

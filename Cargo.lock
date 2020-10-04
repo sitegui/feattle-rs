@@ -340,7 +340,7 @@ checksum = "e88a8acf291dafb59c2d96e8f59828f3838bb1a70398823ade51a84de6a6deed"
 
 [[package]]
 name = "feattle"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "env_logger",
  "feattle-core",
@@ -355,7 +355,7 @@ dependencies = [
 
 [[package]]
 name = "feattle-core"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -370,7 +370,7 @@ dependencies = [
 
 [[package]]
 name = "feattle-sync"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "async-trait",
  "chrono",
@@ -389,7 +389,7 @@ dependencies = [
 
 [[package]]
 name = "feattle-ui"
-version = "0.2.0"
+version = "0.2.1"
 dependencies = [
  "chrono",
  "feattle-core",
