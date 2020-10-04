@@ -381,6 +381,7 @@ dependencies = [
  "dotenv",
  "feattle-core",
  "log 0.4.11",
+ "parking_lot",
  "rusoto_core",
  "rusoto_s3",
  "serde",
