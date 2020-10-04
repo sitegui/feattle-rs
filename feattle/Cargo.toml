@@ -1,6 +1,6 @@
 [package]
 name = "feattle"
-version = "0.1.0"
+version = "0.2.0"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
 description = "Featture toggles for Rust, extensible and with background synchronization and administation UI"
