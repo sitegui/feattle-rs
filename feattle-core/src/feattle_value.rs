@@ -141,7 +141,7 @@ impl FeattleValue for f32 {
     fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
         let n_64 = extract_f64(value)?;
         let n_32 = n_64 as f32;
-        if n_64 != n_32 as f64 {
+        if (n_64 - n_32 as f64).abs() > 1e-6 {
             Err(FromJsonError::WrongKind {
                 actual: "Number::f64",
                 expected: "Number::f32",
