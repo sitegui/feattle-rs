@@ -1,7 +1,7 @@
 //! Define the interface with some external persistence logic
 //!
 //! This core module does not provide any concrete implementation for persisting the current and
-//! historical values for the feature toggles. Instead, it defines this extension point that can be
+//! historical values for the feattles. Instead, it defines this extension point that can be
 //! used to create your own custom logic, however some implementors are available in the package
 //! `feattle-sync`.
 
@@ -68,20 +68,20 @@ pub trait Persist: Send + Sync + 'static {
     async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, Self::Error>;
 }
 
-/// Store the current values of all feature toggles
+/// Store the current values of all feattles
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CurrentValues {
     /// A monotonically increasing version, that can be used to detect race conditions
     pub version: i32,
     /// When this version was created
     pub date: DateTime<Utc>,
-    /// Data for each feature. Some features may not be present in this map, since they were never
-    /// modified. Also, some extra features may be present in this map because they were used in a
+    /// Data for each feattle. Some feattles may not be present in this map, since they were never
+    /// modified. Also, some extra feattles may be present in this map because they were used in a
     /// previous invocation of feattles.
     pub feattles: BTreeMap<String, CurrentValue>,
 }
 
-/// Store the current value of a single feature toggle
+/// Store the current value of a single featttle
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct CurrentValue {
     /// When this modification was made
@@ -92,14 +92,14 @@ pub struct CurrentValue {
     pub value: Value,
 }
 
-/// Store the history of modification of a single feature toggle
+/// Store the history of modification of a single feattle
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct ValueHistory {
     /// The entries are not necessarily stored in any specific order
     pub entries: Vec<HistoryEntry>,
 }
 
-/// Store the value at a given point in time of a single feature toggle
+/// Store the value at a given point in time of a single feattle
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct HistoryEntry {
     /// The value, expressed in JSON

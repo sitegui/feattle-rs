@@ -1,31 +1,31 @@
-.features-struct {
+.feattles-struct {
     color: #A9B7C6;
     font-family: monospace;
 }
 
-.features-struct .keyword {
+.feattles-struct .keyword {
     color: #CC7832;
 }
 
-.features-struct .field {
+.feattles-struct .field {
     color: #9876AA;
 }
 
-.features-struct .doc {
+.feattles-struct .doc {
     color: #629755;
 }
 
-.features-struct .doc-keyword {
+.feattles-struct .doc-keyword {
     color: #629755;
     text-decoration: underline;
 }
 
-.features-struct .link {
+.feattles-struct .link {
     color: #4F86CD;
     text-decoration: underline;
 }
 
-.features-struct .tab {
+.feattles-struct .tab {
     margin-left: 1em;
     display: block;
 }

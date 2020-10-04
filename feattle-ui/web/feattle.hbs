@@ -1,6 +1,6 @@
 {{#> layout}}
     {{#*inline "title"}}
-        Feature {{ key }}
+        Feattle {{ key }}
     {{/inline}}
     {{#*inline "content"}}
         <h1>{{ key }}</h1>
@@ -17,7 +17,7 @@
             <strong id="validation_error_details"></strong>
             <button class="close" id="close_validation_error">&times;</button>
         </div>
-        <form action="/feature/{{ key }}/edit" method="post" id="form">
+        <form action="/feattle/{{ key }}/edit" method="post" id="form">
             <input name="value_json" id="value_json" type="hidden">
             <div id="editor" data-format="{{ format_json }}" data-value="{{ value_json }}"
                  class="my-2"></div>
@@ -51,14 +51,14 @@
 
         <script>
             'use strict'
-            let featureEditor
+            let feattleEditor
             $(() => {
                 // Editor
-                featureEditor = new FeatureEditor($('#editor'))
+                feattleEditor = new FeattleEditor($('#editor'))
                 $('#close_validation_error').click(() => $('#validation_error').hide())
                 $('#form').submit(() => {
                     try {
-                        let value = featureEditor.getValue()
+                        let value = feattleEditor.getValue()
                         $('#value_json').val(JSON.stringify(value))
                     } catch (error) {
                         $('#validation_error').show()

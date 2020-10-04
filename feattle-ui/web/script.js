@@ -1,6 +1,6 @@
 'use strict'
 
-class FeatureEditor {
+class FeattleEditor {
     constructor(editorEl) {
         this.editorEl = editorEl
 
@@ -97,7 +97,7 @@ class FeatureEditor {
             }
         })
         this.editorEl.append(this.sourceEl)
-        this.innerEditor = new FeatureEditor(this.sourceEl)
+        this.innerEditor = new FeattleEditor(this.sourceEl)
 
         this.switchEl.change(() => {
             if (this.switchEl.prop('checked')) {

@@ -46,8 +46,8 @@ impl Pages {
             };
         }
         register_template!("layout");
-        register_template!("features");
-        register_template!("feature");
+        register_template!("feattles");
+        register_template!("feattle");
 
         let mut public_files = BTreeMap::new();
         macro_rules! insert_public_file {
@@ -80,13 +80,13 @@ impl Pages {
         })
     }
 
-    pub fn render_features(
+    pub fn render_feattles(
         &self,
         definitions: &[FeattleDefinition],
         last_reload: Option<DateTime<Utc>>,
         current_values: Option<&CurrentValues>,
     ) -> PageResult {
-        let features: Vec<_> = definitions
+        let feattles: Vec<_> = definitions
             .iter()
             .map(|definition| {
                 json!({
@@ -112,9 +112,9 @@ impl Pages {
         };
 
         Self::convert_html(self.handlebars.render(
-            "features",
+            "feattles",
             &json!({
-                 "features": features,
+                 "feattles": feattles,
                  "label": self.label,
                  "last_reload": last_reload_str,
                  "version": version,
@@ -122,7 +122,7 @@ impl Pages {
         ))
     }
 
-    pub fn render_feature(
+    pub fn render_feattle(
         &self,
         definition: &FeattleDefinition,
         history: &ValueHistory,
@@ -142,7 +142,7 @@ impl Pages {
             .collect::<Result<Vec<_>, _>>()?;
 
         Self::convert_html(self.handlebars.render(
-            "feature",
+            "feattle",
             &json!({
                 "key": definition.key,
                 "format": definition.format.tag,

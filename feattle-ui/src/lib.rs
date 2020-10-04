@@ -44,7 +44,7 @@ pub use warp_ui::run_warp_server;
 /// let my_toggles = Arc::new(MyToggles::new(NoPersistence));
 /// let admin_panel = AdminPanel::new(my_toggles, "Project Panda - DEV".to_owned());
 ///
-/// let home_content = admin_panel.list_features()?;
+/// let home_content = admin_panel.list_feattles()?;
 /// assert_eq!(home_content.content_type, "text/html; charset=utf-8");
 /// assert!(home_content.content.len() > 0);
 /// # Ok(())
@@ -107,8 +107,8 @@ impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
 
     /// Render the page that lists the current feattles values, together with navigation links to
     /// modify them. This page is somewhat the "home screen" of the UI.
-    pub fn list_features(&self) -> Result<RenderedPage, RenderError<P::Error>> {
-        Ok(self.pages.render_features(
+    pub fn list_feattles(&self) -> Result<RenderedPage, RenderError<P::Error>> {
+        Ok(self.pages.render_feattles(
             &self.feattles.definitions(),
             self.feattles.last_reload(),
             self.feattles.current_values().as_deref(),
@@ -116,9 +116,9 @@ impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
     }
 
     /// Render the page that shows the current and historical values of a single feattle, together
-    /// with the form to modify it. The generated form submits to "/feature/{{ key }}/edit" with the
+    /// with the form to modify it. The generated form submits to "/feattle/{{ key }}/edit" with the
     /// POST method in url-encoded format with a single field called "value_json".
-    pub async fn show_feature(&self, key: &str) -> Result<RenderedPage, RenderError<P::Error>> {
+    pub async fn show_feattle(&self, key: &str) -> Result<RenderedPage, RenderError<P::Error>> {
         let definition = self
             .feattles
             .definition(&key)
@@ -126,13 +126,13 @@ impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
         let history = self.feattles.history(&key).await?;
         Ok(self
             .pages
-            .render_feature(&definition, &history, self.feattles.last_reload())?)
+            .render_feattle(&definition, &history, self.feattles.last_reload())?)
     }
 
     /// Process a modification of a single feattle, given its key and the JSON representation of its
     /// future value. In case of success, the return is empty, so caller should usually redirect the
     /// user somewhere after.
-    pub async fn edit_feature(
+    pub async fn edit_feattle(
         &self,
         key: &str,
         value_json: &str,
@@ -178,12 +178,12 @@ mod tests {
         ));
 
         // Just check the methods return
-        admin_panel.list_features().unwrap();
-        admin_panel.show_feature("a").await.unwrap();
-        admin_panel.show_feature("non-existent").await.unwrap_err();
+        admin_panel.list_feattles().unwrap();
+        admin_panel.show_feattle("a").await.unwrap();
+        admin_panel.show_feattle("non-existent").await.unwrap_err();
         admin_panel.render_public_file("script.js").unwrap();
         admin_panel.render_public_file("non-existent").unwrap_err();
-        admin_panel.edit_feature("a", "true").await.unwrap();
-        admin_panel.edit_feature("a", "17").await.unwrap_err();
+        admin_panel.edit_feattle("a", "true").await.unwrap();
+        admin_panel.edit_feattle("a", "17").await.unwrap_err();
     }
 }

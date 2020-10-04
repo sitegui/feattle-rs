@@ -14,7 +14,7 @@ use warp::{Filter, Rejection, Reply};
 struct RequestError<PersistError: Error + Send + Sync + 'static>(RenderError<PersistError>);
 
 #[derive(Debug, Deserialize)]
-struct EditFeatureForm {
+struct EditFeattleForm {
     value_json: String,
 }
 
@@ -50,28 +50,28 @@ pub async fn run_warp_server<F, P>(
     F: Feattles<P>,
     P: Persist,
 {
-    let list_features = {
+    let list_feattles = {
         let admin_panel = admin_panel.clone();
         warp::path::end().and(warp::get()).and_then(move || {
             let admin_panel = admin_panel.clone();
             async move {
                 admin_panel
-                    .list_features()
+                    .list_feattles()
                     .map_err(to_rejection)
                     .map(to_reply)
             }
         })
     };
 
-    let show_feature = {
+    let show_feattle = {
         let admin_panel = admin_panel.clone();
-        warp::path!("feature" / String)
+        warp::path!("feattle" / String)
             .and(warp::get())
             .and_then(move |key: String| {
                 let admin_panel = admin_panel.clone();
                 async move {
                     admin_panel
-                        .show_feature(&key)
+                        .show_feattle(&key)
                         .await
                         .map_err(to_rejection)
                         .map(to_reply)
@@ -79,16 +79,16 @@ pub async fn run_warp_server<F, P>(
             })
     };
 
-    let edit_feature = {
+    let edit_feattle = {
         let admin_panel = admin_panel.clone();
-        warp::path!("feature" / String / "edit")
+        warp::path!("feattle" / String / "edit")
             .and(warp::post())
             .and(warp::body::form())
-            .and_then(move |key: String, form: EditFeatureForm| {
+            .and_then(move |key: String, form: EditFeattleForm| {
                 let admin_panel = admin_panel.clone();
                 async move {
                     admin_panel
-                        .edit_feature(&key, &form.value_json)
+                        .edit_feattle(&key, &form.value_json)
                         .await
                         .map_err(to_rejection)
                         .map(|_| warp::redirect(Uri::from_static("/")))
@@ -112,9 +112,9 @@ pub async fn run_warp_server<F, P>(
     };
 
     warp::serve(
-        list_features
-            .or(show_feature)
-            .or(edit_feature)
+        list_feattles
+            .or(show_feattle)
+            .or(edit_feattle)
             .or(public_files),
     )
     .run(addr)
