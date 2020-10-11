@@ -26,6 +26,29 @@ jobs:
           S3_BUCKET: ${{ secrets.S3_BUCKET }}
           S3_KEY_PREFIX: ${{ secrets.S3_KEY_PREFIX }}
 
+  test_msrv:
+    name: Test Suite MSRV
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Install Rust
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: 1.42.0
+          profile: minimal
+          override: true
+      - uses: actions-rs/cargo@v1
+        with:
+          command: test
+          args: --all-features
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          S3_KEY_PREFIX: ${{ secrets.S3_KEY_PREFIX }}
+
   rustfmt:
     name: Rustfmt
     runs-on: ubuntu-latest

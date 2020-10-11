@@ -400,17 +400,17 @@ mod tests {
         fails::<usize>(json!(-17));
         converts(json!(-17), -17isize, "-17");
 
-        let overview = u32::MAX.to_string();
-        fails::<u8>(json!(u32::MAX));
-        fails::<i8>(json!(u32::MAX));
-        fails::<u16>(json!(u32::MAX));
-        fails::<i16>(json!(u32::MAX));
-        converts(json!(u32::MAX), u32::MAX, &overview);
-        fails::<i32>(json!(u32::MAX));
-        converts(json!(u32::MAX), u32::MAX as u64, &overview);
-        converts(json!(u32::MAX), u32::MAX as i64, &overview);
-        converts(json!(u32::MAX), u32::MAX as usize, &overview);
-        converts(json!(u32::MAX), u32::MAX as isize, &overview);
+        let overview = std::u32::MAX.to_string();
+        fails::<u8>(json!(std::u32::MAX));
+        fails::<i8>(json!(std::u32::MAX));
+        fails::<u16>(json!(std::u32::MAX));
+        fails::<i16>(json!(std::u32::MAX));
+        converts(json!(std::u32::MAX), std::u32::MAX, &overview);
+        fails::<i32>(json!(std::u32::MAX));
+        converts(json!(std::u32::MAX), std::u32::MAX as u64, &overview);
+        converts(json!(std::u32::MAX), std::u32::MAX as i64, &overview);
+        converts(json!(std::u32::MAX), std::u32::MAX as usize, &overview);
+        converts(json!(std::u32::MAX), std::u32::MAX as isize, &overview);
     }
 
     #[test]
