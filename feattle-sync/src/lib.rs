@@ -3,7 +3,8 @@
 //!
 //! The crate [`feattle_core`] provides the trait [`feattle_core::persist::Persist`] as the
 //! extension point to implementors of the persistence layer logic. This crates has some useful
-//! concrete implementations: [`Disk`] and [`S3`].
+//! concrete implementations: [`Disk`] and [`S3`]. Please refer to the
+//! [main package - `feattle`](https://crates.io/crates/feattle) for more information.
 //!
 //! It also provides a simple way to poll the persistence layer for updates in [`BackgroundSync`].
 //!

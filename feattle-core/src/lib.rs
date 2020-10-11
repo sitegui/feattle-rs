@@ -1,6 +1,7 @@
 //! This crate is the core implementation of the feature flags (called "feattles", for short).
 //!
-//! Its main parts are the macro [`feattles!`] together with the trait [`Feattles`].
+//! Its main parts are the macro [`feattles!`] together with the trait [`Feattles`]. Please refer to
+//! the [main package - `feattle`](https://crates.io/crates/feattle) for more information.
 //!
 //! # Usage example
 //! ```

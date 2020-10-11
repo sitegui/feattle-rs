@@ -2,7 +2,8 @@
 //! flags (called "feattles", for short).
 //!
 //! It provides a web-framework-agnostic implementation in [`AdminPanel`] and a ready-to-use binding
-//! to `warp` in [`run_warp_server`].
+//! to `warp` in [`run_warp_server`]. Please refer to the
+//! [main package - `feattle`](https://crates.io/crates/feattle) for more information.
 //!
 //! # Optional features
 //!
