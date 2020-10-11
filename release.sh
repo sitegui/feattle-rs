@@ -8,6 +8,11 @@ fi
 PACKAGE=$1
 VERSION=$2
 
-cargo readme --project-root "$PACKAGE" --template ../README.tpl > "$PACKAGE/README.md"
 sed -i "s/^version = \".*\"$/version = \"$VERSION\"/" "$PACKAGE/Cargo.toml"
+
+cargo readme --project-root "$PACKAGE" --template ../README.tpl > "$PACKAGE/README.md"
+if [[ $PACKAGE == feattle ]]; then
+  cp feattle-core/README.md .
+fi
+
 cargo publish --manifest-path "$PACKAGE/Cargo.toml"

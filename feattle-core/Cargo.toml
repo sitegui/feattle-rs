@@ -6,7 +6,7 @@ edition = "2018"
 description = "Featture toggles for Rust, extensible and with background synchronization and administration UI"
 repository = "https://github.com/sitegui/feattle-rs"
 license = "MIT OR Apache-2.0"
-readme = "../README.md"
+readme = "README.md"
 keywords = ["toggle", "feature", "flag", "flipper"]
 categories = ["config", "data-structures", "development-tools", "web-programming"]
 

@@ -1,21 +1,21 @@
-# feattle-core
+# feattle
 
-[![Crates.io](https://img.shields.io/crates/v/feattle-core.svg)](https://crates.io/crates/feattle-core)
-[![Docs.rs](https://docs.rs/feattle-core/badge.svg)](https://docs.rs/feattle-core)
+[![Crates.io](https://img.shields.io/crates/v/feattle.svg)](https://crates.io/crates/feattle)
+[![Docs.rs](https://docs.rs/feattle/badge.svg)](https://docs.rs/feattle)
 [![CI](https://github.com/sitegui/feattle-rs/workflows/Continuous%20Integration/badge.svg)](https://github.com/sitegui/feattle-rs/actions)
 [![Coverage Status](https://coveralls.io/repos/github/sitegui/feattle-rs/badge.svg?branch=master)](https://coveralls.io/github/sitegui/feattle-rs?branch=master)
 
-This crate is the core implementation of the feature flags (called "feattles", for short).
+Featture toggles for Rust, extensible and with background synchronization and administration UI.
 
-Its main parts are the macro [`feattles!`] together with the trait [`Feattles`]. Please refer to
-the [main package - `feattle`](https://crates.io/crates/feattle) for more information.
+### Example
 
-## Usage example
 ```rust
-use feattle_core::{feattles, Feattles};
-use feattle_core::persist::NoPersistence;
+use rusoto_s3::S3Client;
+use rusoto_core::Region;
+use feattle::*;
+use std::sync::Arc;
 
-// Declare the struct
+/// A struct with your feature toggles
 feattles! {
     struct MyFeattles {
         /// Is this usage considered cool?
@@ -28,8 +28,19 @@ feattles! {
     }
 }
 
-// Create a new instance (`NoPersistence` is just a mock for the persistence layer)
-let my_feattles = MyFeattles::new(NoPersistence);
+// Store their values and history in AWS' S3
+let s3_client = S3Client::new(Region::default());
+let persistence = S3::new(s3_client, "my-bucket".to_owned(), "some/s3/prefix/".to_owned());
+
+// Create a new instance
+let my_feattles = Arc::new(MyFeattles::new(persistence));
+
+// Poll the storage in the background
+BackgroundSync::new(&my_feattles).spawn();
+
+// Start the admin UI with `warp`
+let admin_panel = Arc::new(AdminPanel::new(my_feattles.clone(), "Project Panda - DEV".to_owned()));
+tokio::spawn(run_warp_server(admin_panel, ([127, 0, 0, 1], 3030)));
 
 // Read values (note the use of `*`)
 assert_eq!(*my_feattles.is_cool(), true);
@@ -89,6 +100,15 @@ use b::B;
 ## Optional features
 
 - **uuid**: will add support for [`uuid::Uuid`].
+- **s3**: provides [`S3`] to integrate with AWS' S3
+- **warp**: provides [`run_warp_server`] for a read-to-use integration with [`warp`]
+
+### Organization
+
+* `feattle-core`: [![Crates.io](https://img.shields.io/crates/v/feattle-core.svg)](https://crates.io/crates/feattle-core)
+* `feattle-sync`: [![Crates.io](https://img.shields.io/crates/v/feattle-sync.svg)](https://crates.io/crates/feattle-sync)
+* `feattle-ui`: [![Crates.io](https://img.shields.io/crates/v/feattle-ui.svg)](https://crates.io/crates/feattle-ui)
+* `feattle`: [![Crates.io](https://img.shields.io/crates/v/feattle.svg)](https://crates.io/crates/feattle)
 
 ## License
 
