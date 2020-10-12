@@ -1,6 +1,6 @@
 [package]
 name = "feattle"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
 description = "Featture toggles for Rust, extensible and with background synchronization and administration UI"
@@ -18,9 +18,9 @@ uuid = ["feattle-core/uuid"]
 warp = ["feattle-ui/warp"]
 
 [dependencies]
-feattle-core = { path = "../feattle-core", version = "0.2.3" }
-feattle-sync = { path = "../feattle-sync", version = "0.2.3" }
-feattle-ui = { path = "../feattle-ui", version = "0.2.3" }
+feattle-core = { path = "../feattle-core", version = "0.2.4" }
+feattle-sync = { path = "../feattle-sync", version = "0.2.4" }
+feattle-ui = { path = "../feattle-ui", version = "0.2.4" }
 
 [dev-dependencies]
 dotenv = "0.15.0"

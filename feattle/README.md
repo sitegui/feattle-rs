@@ -5,7 +5,8 @@
 [![CI](https://github.com/sitegui/feattle-rs/workflows/Continuous%20Integration/badge.svg)](https://github.com/sitegui/feattle-rs/actions)
 [![Coverage Status](https://coveralls.io/repos/github/sitegui/feattle-rs/badge.svg?branch=master)](https://coveralls.io/github/sitegui/feattle-rs?branch=master)
 
-Featture toggles for Rust, extensible and with background synchronization and administration UI.
+Featture toggles for Rust  (called "feattles", for short), extensible and with background
+synchronization and administration UI.
 
 ### Example
 
@@ -15,7 +16,9 @@ use rusoto_core::Region;
 use feattle::*;
 use std::sync::Arc;
 
-/// A struct with your feature toggles
+/// A struct with your feature toggles: you can use primitive types (like `bool`, `i32`, etc),
+/// standard collections (like `Vec`, `BTreeSet`, etc) or any arbitrary type that implements
+/// the required trait.
 feattles! {
     struct MyFeattles {
         /// Is this usage considered cool?
@@ -48,6 +51,21 @@ assert_eq!(*my_feattles.max_blings(), 0);
 assert_eq!(*my_feattles.blocked_actions(), Vec::<String>::new());
 ```
 
+You can run a full example locally with: `cargo run --example full --features='s3 uuid warp'`.
+
+With this code, you'll get an Web Admin UI like:
+
+![Home Web Admin UI](https://raw.githubusercontent.com/sitegui/feattle-rs/master/imgs/home.png)
+
+You can use the UI to edit the current values and see their change history. For example, this
+is what you can expect when editing an `enum`:
+
+![Edit enum](https://raw.githubusercontent.com/sitegui/feattle-rs/master/imgs/edit_enum.png)
+
+It also supports complex types with a JSON editor and helpful error diagnostics:
+
+![Edit JSON](https://raw.githubusercontent.com/sitegui/feattle-rs/master/imgs/edit_json.png)
+
 ## How it works
 
 The macro will generate a struct with the given name and visibility modifier (assuming private
@@ -65,50 +83,31 @@ starting with `///`) to describe nicely what they do in your system. You can use
 implements [`FeattleValue`] and optionally provide a default. If not provided, the default
 will be created with `Default::default()`.
 
-## Updating values
-This crate only disposes of low-level methods to load current feattles with [`Feattles::reload()`]
-and update their values with [`Feattles::update()`]. Please look for the crates
-[feattle-sync](https://crates.io/crates/feattle-sync) and
-[feattle-ui](https://crates.io/crates/feattle-ui) for higher-level functionalities.
+## Minimum supported Rust version
 
-## Limitations
-Due to some restrictions on how the macro is written, you can only use [`feattles!`] once per
-module. For example, the following does not compile:
-
-```compile_fail
-use feattle_core::feattles;
-
-feattles! { struct A { } }
-feattles! { struct B { } }
-```
-
-You can work around this limitation by creating a sub-module and then re-exporting the generated
-struct. Note the use of `pub struct` in the second case.
-```rust
-use feattle_core::feattles;
-
-feattles! { struct A { } }
-
-mod b {
-    use feattle_core::feattles;
-    feattles! { pub struct B { } }
-}
-
-use b::B;
-```
+As of this release, the MSRV is 1.42.0, as tested in the CI. A patch release will never require
+a newer MSRV.
 
 ## Optional features
+
+You can easily declare feattles with your custom types, use another persistance storage logic
+or Web Framework (or any at all). For some out-of-the-box functionality, you can activate these
+cargo features:
 
 - **uuid**: will add support for [`uuid::Uuid`].
 - **s3**: provides [`S3`] to integrate with AWS' S3
 - **warp**: provides [`run_warp_server`] for a read-to-use integration with [`warp`]
 
-### Organization
+### Crate's organization
+
+This crate is a simple re-export of these three components:
 
 * `feattle-core`: [![Crates.io](https://img.shields.io/crates/v/feattle-core.svg)](https://crates.io/crates/feattle-core)
 * `feattle-sync`: [![Crates.io](https://img.shields.io/crates/v/feattle-sync.svg)](https://crates.io/crates/feattle-sync)
 * `feattle-ui`: [![Crates.io](https://img.shields.io/crates/v/feattle-ui.svg)](https://crates.io/crates/feattle-ui)
-* `feattle`: [![Crates.io](https://img.shields.io/crates/v/feattle.svg)](https://crates.io/crates/feattle)
+
+Having them separate allows for leaner lower-level integration. If you're creating a crate to
+provide a different storage or admin, you just need `feattle-core`.
 
 ## License
 
