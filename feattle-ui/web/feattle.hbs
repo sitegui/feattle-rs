@@ -11,6 +11,16 @@
             <strong>Current value</strong>: <code>{{ value_overview }}</code>
         </p>
 
+        <div class="alert alert-warning alert-dismissible" id="clipboard_error"
+             style="display: none">
+            <p>
+                The clipboard API is not available in this window, please make sure to serve this page with HTTPS.<br>
+                Here's the full content that you tried to copy:
+            </p>
+            <pre id="clipboard_error_content"></pre>
+            <button class="close" id="close_clipboard_error">&times;</button>
+        </div>
+
         <div class="alert alert-danger alert-dismissible" id="validation_error"
              style="display: none">
             The entered value is not valid:<br>
@@ -70,7 +80,13 @@
                 // History
                 $('button[data-history]').click(function () {
                     let value = JSON.parse($(this).attr('data-value'))
-                    navigator.clipboard.writeText(JSON.stringify(value, null, 4))
+                    let content = JSON.stringify(value, null, 4)
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(content)
+                    } else {
+                        $('#clipboard_error').show()
+                        $('#clipboard_error_content').text(content)
+                    }
                 })
             })
         </script>
