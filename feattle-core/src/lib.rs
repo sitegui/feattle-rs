@@ -198,9 +198,10 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
                 };
                 inner.current_values = Some(empty);
             }
-            Some(mut current_values) => {
+            Some(current_values) => {
                 for &key in self.keys() {
-                    let value = current_values.feattles.remove(key);
+                    let value = current_values.feattles.get(key).cloned();
+                    log::debug!("Will update {} with {:?}", key, value);
                     if let Err(error) = inner.feattles_struct.try_update(key, value) {
                         log::error!("Failed to update {}: {:?}", key, error);
                     }
@@ -259,6 +260,8 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
 
             (new_values, old_value)
         };
+
+        log::debug!("new_values = {:?}", new_values);
 
         let rollback_step_1 = || {
             // Note that if the old value was failing to parse, then the update will be final.

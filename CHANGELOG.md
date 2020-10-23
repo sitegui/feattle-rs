@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [feattle 0.2.5] - 2020-10-23
+
+### Fixed
+Fixed a bug in which when updating one feattle, all the others would be reset to their default value.
+
+## [feattle-core 0.2.5] - 2020-10-23
+
+### Fixed
+Fixed a bug in which when updating one feattle, all the others would be reset to their default value.
+
 ## [feattle-core 0.2.4] - 2020-10-12
 First fully documented and supported version
 
