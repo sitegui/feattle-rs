@@ -50,7 +50,7 @@ use std::error::Error;
 /// The persistence layer can define their own error type, that will be bubbled up by other error
 /// types, like [`super::UpdateError`] and [`super::HistoryError`].
 #[async_trait]
-pub trait Persist: Send + Sync + 'static {
+pub trait Persist {
     type Error: Error + Send + Sync + 'static;
 
     /// Save current state of all feattles.

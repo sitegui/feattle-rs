@@ -77,8 +77,8 @@ impl<F> BackgroundSync<F> {
     /// Operational logs are generated with the crate [`log`].
     pub fn spawn<P>(self) -> JoinHandle<()>
     where
-        F: Feattles<P>,
-        P: Persist,
+        F: Feattles<P> + Sync + Send + 'static,
+        P: Persist + Sync + 'static,
     {
         tokio::spawn(async move {
             while let Some(feattles) = self.feattles.upgrade() {

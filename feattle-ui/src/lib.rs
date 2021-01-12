@@ -96,7 +96,7 @@ impl<PersistError: Error + Send + Sync + 'static> From<PageError> for RenderErro
     }
 }
 
-impl<F: Feattles<P>, P: Persist> AdminPanel<F, P> {
+impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
     /// Create a new UI provider for a given feattles and a user-visible label
     pub fn new(feattles: Arc<F>, label: String) -> Self {
         AdminPanel {

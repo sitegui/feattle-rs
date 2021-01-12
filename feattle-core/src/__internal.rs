@@ -50,7 +50,7 @@ impl fmt::Display for ParseError {
 impl Error for ParseError {}
 
 /// The auto-generated internal struct will implement this trait
-pub trait FeattlesStruct {
+pub trait FeattlesStruct: 'static {
     /// Try to update the given key, returning the previous value, if any.
     fn try_update(
         &mut self,

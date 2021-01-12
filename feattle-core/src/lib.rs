@@ -143,7 +143,7 @@ pub enum HistoryError<PersistError: Error + Send + Sync + 'static> {
 /// The struct created with [`feattles!`] will implement this trait in addition to a method for each
 /// feattle. Read more at the [crate documentation](crate).
 #[async_trait]
-pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
+pub trait Feattles<P>: FeattlesPrivate<P> {
     /// Create a new feattles instance, using the given persistence layer logic.
     ///
     /// All feattles will start with their default values. You can force an initial synchronization
@@ -184,7 +184,10 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
     /// If any of the feattle values fail to be parsed from previously persisted values, their
     /// updates will be skipped. Other feattles that parsed successfully will still be updated.
     /// In this case, a [`log::error!`] will be generated for each time it occurs.
-    async fn reload(&self) -> Result<(), P::Error> {
+    async fn reload(&self) -> Result<(), P::Error>
+    where
+        P: Persist + Sync + 'static,
+    {
         let current_values = self.persistence().load_current().await?;
         let mut inner = self._write();
         let now = Utc::now();
@@ -222,7 +225,10 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
         key: &str,
         value: Value,
         modified_by: String,
-    ) -> Result<(), UpdateError<P::Error>> {
+    ) -> Result<(), UpdateError<P::Error>>
+    where
+        P: Persist + Sync + 'static,
+    {
         use UpdateError::*;
 
         // The update operation is made of 4 steps, each of which may fail:
@@ -329,7 +335,10 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
     }
 
     /// Return the history for a single feattle. It can be potentially empty (not entries).
-    async fn history(&self, key: &str) -> Result<ValueHistory, HistoryError<P::Error>> {
+    async fn history(&self, key: &str) -> Result<ValueHistory, HistoryError<P::Error>>
+    where
+        P: Persist + Sync + 'static,
+    {
         // Assert the key exists
         if !self.keys().contains(&key) {
             return Err(HistoryError::UnknownKey(key.to_owned()));
@@ -348,7 +357,7 @@ pub trait Feattles<P: Persist>: FeattlesPrivate<P> + Send + Sync + 'static {
 /// This struct is `pub` because the macro must have access to it, but should be otherwise invisible
 /// to the users of this crate.
 #[doc(hidden)]
-pub trait FeattlesPrivate<P: Persist> {
+pub trait FeattlesPrivate<P> {
     type FeattleStruct: FeattlesStruct;
     fn _read(&self) -> RwLockReadGuard<InnerFeattles<Self::FeattleStruct>>;
     fn _write(&self) -> RwLockWriteGuard<InnerFeattles<Self::FeattleStruct>>;

@@ -47,8 +47,8 @@ pub async fn run_warp_server<F, P>(
     admin_panel: Arc<AdminPanel<F, P>>,
     addr: impl Into<SocketAddr> + 'static,
 ) where
-    F: Feattles<P>,
-    P: Persist,
+    F: Feattles<P> + Sync + Send + 'static,
+    P: Persist + Sync + Send + 'static,
 {
     let list_feattles = {
         let admin_panel = admin_panel.clone();

@@ -131,7 +131,7 @@ macro_rules! feattles {
         #[derive(Debug)]
         $visibility struct $name<P>(__internal::FeattlesImpl<P, __Feattles>);
 
-        impl<P: __internal::Persist> __internal::FeattlesPrivate<P> for $name<P> {
+        impl<P> __internal::FeattlesPrivate<P> for $name<P> {
             type FeattleStruct = __Feattles;
 
             fn _read(
@@ -149,7 +149,7 @@ macro_rules! feattles {
             }
         }
 
-        impl<P: __internal::Persist> __internal::Feattles<P> for $name<P> {
+        impl<P> __internal::Feattles<P> for $name<P> {
             fn new(persistence: P) -> Self {
                 $name(__internal::FeattlesImpl::new(
                     persistence,
@@ -183,7 +183,7 @@ macro_rules! feattles {
             }
         }
 
-        impl<P: __internal::Persist> $name<P> {
+        impl<P> $name<P> {
             $(
                 pub fn $key(&self) -> __internal::MappedRwLockReadGuard<$type> {
                     __internal::RwLockReadGuard::map(self.0.inner_feattles.read(), |inner| {
