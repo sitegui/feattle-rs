@@ -16,9 +16,9 @@ mod warp_ui;
 use crate::pages::{PageError, Pages};
 use feattle_core::persist::Persist;
 use feattle_core::{Feattles, HistoryError, UpdateError};
-use serde::export::PhantomData;
 use serde_json::Value;
 use std::error::Error;
+use std::marker::PhantomData;
 use std::sync::Arc;
 
 #[cfg(feature = "warp")]
