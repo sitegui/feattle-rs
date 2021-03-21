@@ -6,6 +6,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [feattle-sync 0.4.0] - 2021-03-21
+
+### Changed
+- Update `rusoto_core` to 0.46.0
+- Update `rusoto_s3` to 0.46.0
+- Update `tokio` to 1.4.0
+
+## [feattle-ui 0.4.0] - 2021-03-21
+
+### Changed
+Update `warp` to 0.3.0
+
+## [feattle 0.4.0] - 2021-03-21
+
+### Changed
+- Update `feattle-sync` to 0.4.0
+- Update `feattle-ui` to 0.4.0
+
 ## [feattle-core 0.3.0] - 2021-01-13
 
 ### Changed

@@ -111,6 +111,6 @@ async fn main() -> Result<(), Box<dyn Error>> {
             features.map_influence_attributes()
         );
         println!("iterate_chaos_array = {:?}", features.iterate_chaos_array());
-        tokio::time::delay_for(Duration::from_secs(5)).await;
+        tokio::time::sleep(Duration::from_secs(5)).await;
     }
 }

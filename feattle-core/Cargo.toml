@@ -23,7 +23,7 @@ thiserror = "1.0.20"
 uuid = { version = "0.8.1", optional = true }
 
 [dev-dependencies]
-tokio = { version = "0.2.22", features = ["macros", "rt-core"] }
+tokio = { version = "1.4.0", features = ["macros", "rt"] }
 
 [package.metadata.docs.rs]
 all-features = true

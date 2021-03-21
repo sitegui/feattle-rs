@@ -3,7 +3,7 @@ use feattle_core::Feattles;
 use std::sync::{Arc, Weak};
 use std::time::Duration;
 use tokio::task::JoinHandle;
-use tokio::time::delay_for;
+use tokio::time::sleep;
 
 /// Spawn a tokio task to poll [`Feattles::reload()`] continuously
 ///
@@ -85,11 +85,11 @@ impl<F> BackgroundSync<F> {
                 match feattles.reload().await {
                     Ok(()) => {
                         log::debug!("Feattles updated");
-                        delay_for(self.ok_interval).await;
+                        sleep(self.ok_interval).await;
                     }
                     Err(err) => {
                         log::warn!("Failed to sync Feattles: {:?}", err);
-                        delay_for(self.err_interval).await;
+                        sleep(self.err_interval).await;
                     }
                 }
             }
