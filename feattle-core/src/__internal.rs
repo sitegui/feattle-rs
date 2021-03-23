@@ -5,9 +5,9 @@ pub use crate::persist::{CurrentValue, Persist};
 pub use crate::{FeattleDefinition, Feattles, FeattlesPrivate};
 pub use parking_lot::{MappedRwLockReadGuard, RwLockReadGuard, RwLockWriteGuard};
 
+use crate::last_reload::LastReload;
 use crate::persist::CurrentValues;
 use crate::FeattleValue;
-use chrono::{DateTime, Utc};
 use parking_lot::RwLock;
 use std::error::Error;
 use std::{fmt, mem};
@@ -23,7 +23,7 @@ pub struct FeattlesImpl<P, FS> {
 /// The main content of a `Feattles` instance, protected behind a lock
 #[derive(Debug, Clone)]
 pub struct InnerFeattles<FS> {
-    pub last_reload: Option<DateTime<Utc>>,
+    pub last_reload: LastReload,
     pub current_values: Option<CurrentValues>,
     pub feattles_struct: FS,
 }
@@ -64,7 +64,7 @@ impl<P, FS> FeattlesImpl<P, FS> {
         FeattlesImpl {
             persistence,
             inner_feattles: RwLock::new(InnerFeattles {
-                last_reload: None,
+                last_reload: LastReload::Never,
                 current_values: None,
                 feattles_struct,
             }),

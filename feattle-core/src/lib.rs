@@ -88,6 +88,7 @@ pub mod __internal;
 mod definition;
 mod feattle_value;
 pub mod json_reading;
+pub mod last_reload;
 /// This module only contains exported macros, that are documented at the root level.
 #[doc(hidden)]
 pub mod macros;
@@ -95,8 +96,9 @@ pub mod persist;
 
 use crate::__internal::{FeattlesStruct, InnerFeattles};
 use crate::json_reading::FromJsonError;
+use crate::last_reload::LastReload;
 use async_trait::async_trait;
-use chrono::{DateTime, Utc};
+use chrono::Utc;
 pub use definition::*;
 pub use feattle_value::*;
 use parking_lot::{MappedRwLockReadGuard, RwLockReadGuard, RwLockWriteGuard};
@@ -160,8 +162,8 @@ pub trait Feattles<P>: FeattlesPrivate<P> {
     /// exist.
     fn definition(&self, key: &str) -> Option<FeattleDefinition>;
 
-    /// The date when the feattle values were last updated from the persistence layer, if ever.
-    fn last_reload(&self) -> Option<DateTime<Utc>> {
+    /// Return details of the last time the data was synchronized by calling [`Feattle::reload()`].
+    fn last_reload(&self) -> LastReload {
         self._read().last_reload
     }
 
@@ -191,9 +193,9 @@ pub trait Feattles<P>: FeattlesPrivate<P> {
         let current_values = self.persistence().load_current().await?;
         let mut inner = self._write();
         let now = Utc::now();
-        inner.last_reload = Some(now);
         match current_values {
             None => {
+                inner.last_reload = LastReload::NoData { reload_date: now };
                 let empty = CurrentValues {
                     version: 0,
                     date: now,
@@ -202,6 +204,11 @@ pub trait Feattles<P>: FeattlesPrivate<P> {
                 inner.current_values = Some(empty);
             }
             Some(current_values) => {
+                inner.last_reload = LastReload::Data {
+                    reload_date: now,
+                    version: current_values.version,
+                    version_date: current_values.date,
+                };
                 for &key in self.keys() {
                     let value = current_values.feattles.get(key).cloned();
                     log::debug!("Will update {} with {:?}", key, value);
@@ -220,6 +227,11 @@ pub trait Feattles<P>: FeattlesPrivate<P> {
     ///
     /// While the update is happening, the new value will already be observable from other
     /// execution tasks or threads. However, if the update fails, the change will be rolled back.
+    ///
+    /// # Consistency
+    ///
+    /// To avoid operating on stale data, before doing an update the caller should usually call
+    /// [`Feattle::reload()`] to ensure data is current.
     async fn update(
         &self,
         key: &str,
@@ -451,7 +463,7 @@ mod tests {
         assert_eq!(*config.b(), 17);
         assert!(Arc::ptr_eq(&config.persistence().0, &persistence.0));
         assert_eq!(config.keys(), &["a", "b"]);
-        assert!(config.last_reload().is_none());
+        assert!(config.last_reload() == LastReload::Never);
         assert!(config.current_values().is_none());
 
         // Load from empty storage
@@ -459,7 +471,7 @@ mod tests {
         assert_eq!(*config.a(), 0);
         assert_eq!(*config.b(), 17);
         let last_reload = config.last_reload();
-        assert!(last_reload.is_some());
+        assert!(matches!(last_reload, LastReload::NoData { .. }));
         assert!(config.current_values().is_some());
 
         // Load from failing storage

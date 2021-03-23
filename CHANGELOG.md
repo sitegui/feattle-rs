@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [feattle-core 0.5.0] - 2021-03-23
+
+### Added
+- Update doc on `Feattles::update()` to warn user about consistency guarantees.
+
+### Changed
+- `Feattles::last_reload()` now returns `LastReload` that contains more information about the last
+  reload operation.
+
 ## [feattle-core 0.4.0] - 2021-03-21
 
 ### Changed
