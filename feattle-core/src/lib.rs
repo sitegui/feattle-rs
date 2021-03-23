@@ -162,7 +162,7 @@ pub trait Feattles<P>: FeattlesPrivate<P> {
     /// exist.
     fn definition(&self, key: &str) -> Option<FeattleDefinition>;
 
-    /// Return details of the last time the data was synchronized by calling [`Feattle::reload()`].
+    /// Return details of the last time the data was synchronized by calling [`Feattles::reload()`].
     fn last_reload(&self) -> LastReload {
         self._read().last_reload
     }
@@ -231,7 +231,7 @@ pub trait Feattles<P>: FeattlesPrivate<P> {
     /// # Consistency
     ///
     /// To avoid operating on stale data, before doing an update the caller should usually call
-    /// [`Feattle::reload()`] to ensure data is current.
+    /// [`Feattles::reload()`] to ensure data is current.
     async fn update(
         &self,
         key: &str,

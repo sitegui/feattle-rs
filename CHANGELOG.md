@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [feattle 0.5.0] - 2021-03-23
+
+### Changed
+- Update `feattle-core` to 0.5.0
+- Update `feattle-sync` to 0.5.0
+- Update `feattle-ui` to 0.5.0
+
 ## [feattle-core 0.5.0] - 2021-03-23
 
 ### Added
