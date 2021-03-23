@@ -57,6 +57,7 @@ pub async fn run_warp_server<F, P>(
             async move {
                 admin_panel
                     .list_feattles()
+                    .await
                     .map_err(to_rejection)
                     .map(to_reply)
             }
@@ -88,7 +89,7 @@ pub async fn run_warp_server<F, P>(
                 let admin_panel = admin_panel.clone();
                 async move {
                     admin_panel
-                        .edit_feattle(&key, &form.value_json)
+                        .edit_feattle(&key, &form.value_json, "admin".to_owned())
                         .await
                         .map_err(to_rejection)
                         .map(|_| warp::redirect(Uri::from_static("/")))

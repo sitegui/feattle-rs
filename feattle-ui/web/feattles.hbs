@@ -5,6 +5,15 @@
     {{#*inline "content"}}
         <h1 class="my-4">Current Values</h1>
 
+        {{#if reload_failed }}
+        <div class="alert alert-warning">
+            <h4 class="alert-heading">Synchronization failed</h4>
+            Failed to reload fresh data from the underlying persistence source.<br>
+            The values shown in this page reflect the state in memory of this instance,
+            that may or may not be the desired state.
+        </div>
+        {{/if}}
+
         <div class="feattles-struct">
             <span class="doc">/// <span class="doc-keyword">Last reload</span>: {{ last_reload }}</span><br>
             <span class="doc">/// <span class="doc-keyword">Version</span>: {{ version }}</span><br>

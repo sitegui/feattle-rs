@@ -1,6 +1,7 @@
 use crate::RenderedPage;
 use chrono::{DateTime, Utc};
-use feattle_core::persist::{CurrentValues, ValueHistory};
+use feattle_core::last_reload::LastReload;
+use feattle_core::persist::ValueHistory;
 use feattle_core::FeattleDefinition;
 use handlebars::Handlebars;
 use serde_json::json;
@@ -83,8 +84,8 @@ impl Pages {
     pub fn render_feattles(
         &self,
         definitions: &[FeattleDefinition],
-        last_reload: Option<DateTime<Utc>>,
-        current_values: Option<&CurrentValues>,
+        last_reload: LastReload,
+        reload_failed: bool,
     ) -> PageResult {
         let feattles: Vec<_> = definitions
             .iter()
@@ -94,19 +95,19 @@ impl Pages {
                     "format": definition.format.tag,
                     "description": definition.description,
                     "value_overview": definition.value_overview,
-                    "last_modification": last_modification(&definition, last_reload.is_some()),
+                    "last_modification": last_modification(&definition, last_reload),
                 })
             })
             .collect();
-        let version = match current_values {
-            None => "unknown".to_owned(),
-            Some(values) => format!(
-                "{}, created at {}",
-                values.version,
-                date_string(values.date)
-            ),
+        let version = match last_reload {
+            LastReload::Never | LastReload::NoData { .. } => "unknown".to_owned(),
+            LastReload::Data {
+                version,
+                version_date,
+                ..
+            } => format!("{}, created at {}", version, date_string(version_date)),
         };
-        let last_reload_str = match last_reload {
+        let last_reload_str = match last_reload.reload_date() {
             None => "never".to_owned(),
             Some(date) => date_string(date),
         };
@@ -118,6 +119,7 @@ impl Pages {
                  "label": self.label,
                  "last_reload": last_reload_str,
                  "version": version,
+                 "reload_failed": reload_failed,
             }),
         ))
     }
@@ -126,7 +128,8 @@ impl Pages {
         &self,
         definition: &FeattleDefinition,
         history: &ValueHistory,
-        last_reload: Option<DateTime<Utc>>,
+        last_reload: LastReload,
+        reload_failed: bool,
     ) -> PageResult {
         let history = history
             .entries
@@ -148,11 +151,12 @@ impl Pages {
                 "format": definition.format.tag,
                 "description": definition.description,
                 "value_overview": definition.value_overview,
-                "last_modification": last_modification(&definition, last_reload.is_some() ),
+                "last_modification": last_modification(&definition, last_reload),
                 "format_json": serde_json::to_string(&definition.format.kind)?,
                 "value_json": serde_json::to_string(&definition.value)?,
                 "label": self.label,
                 "history": history,
+                "reload_failed": reload_failed,
             }),
         ))
     }
@@ -166,15 +170,14 @@ impl Pages {
     }
 }
 
-fn last_modification(definition: &FeattleDefinition, reloaded: bool) -> String {
-    match (&definition.modified_at, &definition.modified_by) {
-        (&Some(at), Some(by)) => format!("{} by {}", date_string(at), by),
-        _ => {
-            if reloaded {
-                "never".to_owned()
-            } else {
-                "unknown".to_owned()
-            }
+fn last_modification(definition: &FeattleDefinition, last_reload: LastReload) -> String {
+    match (last_reload, definition.modified_at, &definition.modified_by) {
+        (LastReload::Never, _, _) => "unknown".to_owned(),
+        (LastReload::NoData { .. }, _, _)
+        | (LastReload::Data { .. }, None, _)
+        | (LastReload::Data { .. }, _, None) => "never".to_owned(),
+        (LastReload::Data { .. }, Some(at), Some(by)) => {
+            format!("{} by {}", date_string(at), by)
         }
     }
 }

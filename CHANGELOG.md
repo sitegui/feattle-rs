@@ -20,6 +20,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Update `feattle-core` to 0.5.0
 
+## [feattle-ui 0.5.0] - 2021-03-23
+
+### Added
+- Show a warning in the UI if the last reload failed
+
+### Changed
+- `AdminPanel::list_feattles()` calls `Feattles:reload()` and is now asynchronous
+- `AdminPanel::show_feattle()` calls `Feattles:reload()`
+- `AdminPanel::edit_feattle()` calls `Feattles:reload()` and may return `RenderError::Reload`
+- `AdminPanel::edit_feattle()` takes a new parameter `modified_by`
+
 ## [feattle-core 0.4.0] - 2021-03-21
 
 ### Changed

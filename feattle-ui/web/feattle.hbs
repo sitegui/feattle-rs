@@ -4,6 +4,16 @@
     {{/inline}}
     {{#*inline "content"}}
         <h1>{{ key }}</h1>
+
+        {{#if reload_failed }}
+            <div class="alert alert-warning">
+                <h4 class="alert-heading">Synchronization failed</h4>
+                Failed to reload fresh data from the underlying persistence source.<br>
+                The values shown in this page reflect the state in memory of this instance,
+                that may or may not be the desired state.
+            </div>
+        {{/if}}
+
         <p>{{ description }}</p>
         <p>
             <strong>Type</strong>: <code>{{ format }}</code><br>

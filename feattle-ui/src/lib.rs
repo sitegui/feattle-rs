@@ -31,7 +31,8 @@ pub use warp_ui::run_warp_server;
 ///
 /// # Example
 /// ```
-/// # fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// # #[tokio::main]
+/// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
 /// use feattle_ui::AdminPanel;
 /// use feattle_core::{feattles, Feattles};
 /// use feattle_core::persist::NoPersistence;
@@ -45,7 +46,7 @@ pub use warp_ui::run_warp_server;
 /// let my_toggles = Arc::new(MyToggles::new(NoPersistence));
 /// let admin_panel = AdminPanel::new(my_toggles, "Project Panda - DEV".to_owned());
 ///
-/// let home_content = admin_panel.list_feattles()?;
+/// let home_content = admin_panel.list_feattles().await?;
 /// assert_eq!(home_content.content_type, "text/html; charset=utf-8");
 /// assert!(home_content.content.len() > 0);
 /// # Ok(())
@@ -84,6 +85,9 @@ pub enum RenderError<PersistError: Error + Send + Sync + 'static> {
     /// Failed to update value
     #[error("failed to update value")]
     Update(#[from] UpdateError<PersistError>),
+    /// Failed to reload new version
+    #[error("failed to reload new version")]
+    Reload(#[source] PersistError),
 }
 
 impl<PersistError: Error + Send + Sync + 'static> From<PageError> for RenderError<PersistError> {
@@ -108,35 +112,48 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
 
     /// Render the page that lists the current feattles values, together with navigation links to
     /// modify them. This page is somewhat the "home screen" of the UI.
-    pub fn list_feattles(&self) -> Result<RenderedPage, RenderError<P::Error>> {
+    ///
+    /// To ensure fresh data is displayed, [`Feattles::reload()`] is called.
+    pub async fn list_feattles(&self) -> Result<RenderedPage, RenderError<P::Error>> {
+        let reload_failed = self.feattles.reload().await.is_err();
         Ok(self.pages.render_feattles(
             &self.feattles.definitions(),
             self.feattles.last_reload(),
-            self.feattles.current_values().as_deref(),
+            reload_failed,
         )?)
     }
 
     /// Render the page that shows the current and historical values of a single feattle, together
     /// with the form to modify it. The generated form submits to "/feattle/{{ key }}/edit" with the
     /// POST method in url-encoded format with a single field called "value_json".
+    ///
+    /// To ensure fresh data is displayed, [`Feattles::reload()`] is called.
     pub async fn show_feattle(&self, key: &str) -> Result<RenderedPage, RenderError<P::Error>> {
+        let reload_failed = self.feattles.reload().await.is_err();
         let definition = self
             .feattles
             .definition(&key)
             .ok_or(RenderError::NotFound)?;
         let history = self.feattles.history(&key).await?;
-        Ok(self
-            .pages
-            .render_feattle(&definition, &history, self.feattles.last_reload())?)
+        Ok(self.pages.render_feattle(
+            &definition,
+            &history,
+            self.feattles.last_reload(),
+            reload_failed,
+        )?)
     }
 
     /// Process a modification of a single feattle, given its key and the JSON representation of its
     /// future value. In case of success, the return is empty, so caller should usually redirect the
     /// user somewhere after.
+    ///
+    /// To ensure fresh data is displayed, [`Feattles::reload()`] is called. Unlike the other pages,
+    /// if the reload fails, this operation will fail.
     pub async fn edit_feattle(
         &self,
         key: &str,
         value_json: &str,
+        modified_by: String,
     ) -> Result<(), RenderError<P::Error>> {
         log::info!(
             "Received edit request for key {} with value {}",
@@ -144,9 +161,8 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
             value_json
         );
         let value: Value = serde_json::from_str(&value_json)?;
-        self.feattles
-            .update(&key, value, "admin".to_owned())
-            .await?;
+        self.feattles.reload().await.map_err(RenderError::Reload)?;
+        self.feattles.update(&key, value, modified_by).await?;
         Ok(())
     }
 
@@ -179,12 +195,18 @@ mod tests {
         ));
 
         // Just check the methods return
-        admin_panel.list_feattles().unwrap();
+        admin_panel.list_feattles().await.unwrap();
         admin_panel.show_feattle("a").await.unwrap();
         admin_panel.show_feattle("non-existent").await.unwrap_err();
         admin_panel.render_public_file("script.js").unwrap();
         admin_panel.render_public_file("non-existent").unwrap_err();
-        admin_panel.edit_feattle("a", "true").await.unwrap();
-        admin_panel.edit_feattle("a", "17").await.unwrap_err();
+        admin_panel
+            .edit_feattle("a", "true", "user".to_owned())
+            .await
+            .unwrap();
+        admin_panel
+            .edit_feattle("a", "17", "user".to_owned())
+            .await
+            .unwrap_err();
     }
 }
