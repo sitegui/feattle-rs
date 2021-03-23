@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Feattles::last_reload()` now returns `LastReload` that contains more information about the last
   reload operation.
 
+## [feattle-sync 0.5.0] - 2021-03-23
+
+### Changed
+- Update `feattle-core` to 0.5.0
+
 ## [feattle-core 0.4.0] - 2021-03-21
 
 ### Changed
