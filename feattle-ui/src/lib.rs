@@ -9,6 +9,7 @@
 //!
 //! - **warp**: provides [`run_warp_server`] for a read-to-use integration with [`warp`]
 
+pub mod api;
 mod pages;
 #[cfg(feature = "warp")]
 mod warp_ui;
@@ -21,6 +22,7 @@ use std::error::Error;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
+use crate::api::v1;
 #[cfg(feature = "warp")]
 pub use warp_ui::run_warp_server;
 
@@ -115,12 +117,24 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
     ///
     /// To ensure fresh data is displayed, [`Feattles::reload()`] is called.
     pub async fn list_feattles(&self) -> Result<RenderedPage, RenderError<P::Error>> {
+        let data = self.list_feattles_api_v1().await?;
+        Ok(self
+            .pages
+            .render_feattles(&data.definitions, data.last_reload, data.reload_failed)?)
+    }
+
+    /// The JSON-API equivalent of [`AdminPanel::list_feattles()`].
+    ///
+    /// To ensure fresh data is displayed, [`Feattles::reload()`] is called.
+    pub async fn list_feattles_api_v1(
+        &self,
+    ) -> Result<v1::ListFeattlesResponse, RenderError<P::Error>> {
         let reload_failed = self.feattles.reload().await.is_err();
-        Ok(self.pages.render_feattles(
-            &self.feattles.definitions(),
-            self.feattles.last_reload(),
+        Ok(v1::ListFeattlesResponse {
+            definitions: self.feattles.definitions(),
+            last_reload: self.feattles.last_reload(),
             reload_failed,
-        )?)
+        })
     }
 
     /// Render the page that shows the current and historical values of a single feattle, together
@@ -129,18 +143,34 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
     ///
     /// To ensure fresh data is displayed, [`Feattles::reload()`] is called.
     pub async fn show_feattle(&self, key: &str) -> Result<RenderedPage, RenderError<P::Error>> {
+        let data = self.show_feattle_api_v1(key).await?;
+        Ok(self.pages.render_feattle(
+            &data.definition,
+            &data.history,
+            data.last_reload,
+            data.reload_failed,
+        )?)
+    }
+
+    /// The JSON-API equivalent of [`AdminPanel::show_feattle()`].
+    ///
+    /// To ensure fresh data is displayed, [`Feattles::reload()`] is called.
+    pub async fn show_feattle_api_v1(
+        &self,
+        key: &str,
+    ) -> Result<v1::ShowFeattleResponse, RenderError<P::Error>> {
         let reload_failed = self.feattles.reload().await.is_err();
         let definition = self
             .feattles
             .definition(&key)
             .ok_or(RenderError::NotFound)?;
         let history = self.feattles.history(&key).await?;
-        Ok(self.pages.render_feattle(
-            &definition,
-            &history,
-            self.feattles.last_reload(),
+        Ok(v1::ShowFeattleResponse {
+            definition,
+            history,
+            last_reload: self.feattles.last_reload(),
             reload_failed,
-        )?)
+        })
     }
 
     /// Process a modification of a single feattle, given its key and the JSON representation of its
@@ -155,14 +185,32 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
         value_json: &str,
         modified_by: String,
     ) -> Result<(), RenderError<P::Error>> {
+        let value: Value = serde_json::from_str(value_json)?;
+        self.edit_feattle_api_v1(v1::EditFeattleRequest {
+            key: key.to_owned(),
+            value,
+            modified_by,
+        })
+        .await
+    }
+
+    /// The JSON-API equivalent of [`AdminPanel::edit_feattle()`].
+    ///
+    /// To ensure fresh data is displayed, [`Feattles::reload()`] is called. Unlike the other pages,
+    /// if the reload fails, this operation will fail.
+    pub async fn edit_feattle_api_v1(
+        &self,
+        request: v1::EditFeattleRequest,
+    ) -> Result<(), RenderError<P::Error>> {
         log::info!(
             "Received edit request for key {} with value {}",
-            key,
-            value_json
+            request.key,
+            request.value
         );
-        let value: Value = serde_json::from_str(&value_json)?;
         self.feattles.reload().await.map_err(RenderError::Reload)?;
-        self.feattles.update(&key, value, modified_by).await?;
+        self.feattles
+            .update(&request.key, request.value, request.modified_by)
+            .await?;
         Ok(())
     }
 

@@ -1,8 +1,9 @@
 use chrono::{DateTime, Utc};
+use serde::Serialize;
 
 /// Store details of the last time the data was synchronized by calling
 /// [`crate::Feattles::reload()`].
-#[derive(Debug, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq, Serialize)]
 pub enum LastReload {
     /// The data was never updated and all feattles carry their default values.
     Never,
