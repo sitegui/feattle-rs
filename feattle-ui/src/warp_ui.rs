@@ -23,6 +23,11 @@ struct EditFeattleForm {
 ///
 /// To use it, make sure to activate the cargo feature `"warp"` in your `Cargo.toml`.
 ///
+/// This will host the web UI under "/" and a JSON API under "/api/v1/" (see more at [`v1`]):
+/// - GET /api/v1/feattles
+/// - GET /api/v1/feattle/{key}
+/// - POST /api/v1/feattle/{key}
+///
 /// # Example
 /// ```no_run
 /// # #[tokio::main]

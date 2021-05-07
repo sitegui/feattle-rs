@@ -6,6 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [feattle 0.6.0] - 2021-05-07
+
+### Changed
+- Update `feattle-ui` to 0.6.0
+
+## [feattle-ui 0.6.0] - 2021-05-07
+
+### Added
+- Add new methods in `AdminPanel` (`list_feattles_api_v1()`, `show_feattle_api_v1()` and `edit_feattle_api_v1()`) adding
+  access to a lower-level API
+- Expose new methods in `warp` as a JSON API under `/api/v1/`
+
 ## [feattle 0.5.0] - 2021-03-23
 
 ### Changed

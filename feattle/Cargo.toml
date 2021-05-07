@@ -1,6 +1,6 @@
 [package]
 name = "feattle"
-version = "0.5.0"
+version = "0.6.0"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
 description = "Featture toggles for Rust, extensible and with background synchronization and administration UI"
@@ -20,7 +20,7 @@ warp = ["feattle-ui/warp"]
 [dependencies]
 feattle-core = { path = "../feattle-core", version = "0.5.0" }
 feattle-sync = { path = "../feattle-sync", version = "0.5.0" }
-feattle-ui = { path = "../feattle-ui", version = "0.5.0" }
+feattle-ui = { path = "../feattle-ui", version = "0.6.0" }
 
 [dev-dependencies]
 chrono = { version = "0.4.15", features = ["serde"] }

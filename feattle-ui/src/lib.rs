@@ -5,6 +5,9 @@
 //! to `warp` in [`run_warp_server`]. Please refer to the
 //! [main package - `feattle`](https://crates.io/crates/feattle) for more information.
 //!
+//! Note that authentication is **not** provided out-of-the-box and you're the one responsible for
+//! controlling and protecting the access.
+//!
 //! # Optional features
 //!
 //! - **warp**: provides [`run_warp_server`] for a read-to-use integration with [`warp`]

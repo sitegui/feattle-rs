@@ -35,6 +35,7 @@ feattle_enum! {
 }
 
 feattle_enum! {
+    #[allow(clippy::enum_variant_names)]
     enum MapInfluenceAttributes {
         FriendsOnly,
         FamilyOnly,
