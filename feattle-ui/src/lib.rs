@@ -186,12 +186,9 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
         modified_by: String,
     ) -> Result<(), RenderError<P::Error>> {
         let value: Value = serde_json::from_str(value_json)?;
-        self.edit_feattle_api_v1(v1::EditFeattleRequest {
-            key: key.to_owned(),
-            value,
-            modified_by,
-        })
-        .await
+        self.edit_feattle_api_v1(key, v1::EditFeattleRequest { value, modified_by })
+            .await?;
+        Ok(())
     }
 
     /// The JSON-API equivalent of [`AdminPanel::edit_feattle()`].
@@ -200,18 +197,19 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
     /// if the reload fails, this operation will fail.
     pub async fn edit_feattle_api_v1(
         &self,
+        key: &str,
         request: v1::EditFeattleRequest,
-    ) -> Result<(), RenderError<P::Error>> {
+    ) -> Result<v1::EditFeattleResponse, RenderError<P::Error>> {
         log::info!(
             "Received edit request for key {} with value {}",
-            request.key,
+            key,
             request.value
         );
         self.feattles.reload().await.map_err(RenderError::Reload)?;
         self.feattles
-            .update(&request.key, request.value, request.modified_by)
+            .update(key, request.value, request.modified_by)
             .await?;
-        Ok(())
+        Ok(v1::EditFeattleResponse {})
     }
 
     /// Renders a public file with the given path. The pages include public files like

@@ -26,8 +26,10 @@ pub mod v1 {
 
     #[derive(Debug, Clone, Deserialize)]
     pub struct EditFeattleRequest {
-        pub key: String,
         pub value: Value,
         pub modified_by: String,
     }
+
+    #[derive(Debug, Clone, Serialize)]
+    pub struct EditFeattleResponse {}
 }
