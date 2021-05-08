@@ -286,7 +286,7 @@ dependencies = [
 
 [[package]]
 name = "feattle-core"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -301,7 +301,7 @@ dependencies = [
 
 [[package]]
 name = "feattle-sync"
-version = "0.5.0"
+version = "0.6.0"
 dependencies = [
  "async-trait",
  "chrono",

@@ -18,8 +18,8 @@ uuid = ["feattle-core/uuid"]
 warp = ["feattle-ui/warp"]
 
 [dependencies]
-feattle-core = { path = "../feattle-core", version = "0.5.0" }
-feattle-sync = { path = "../feattle-sync", version = "0.5.0" }
+feattle-core = { path = "../feattle-core", version = "0.6.0" }
+feattle-sync = { path = "../feattle-sync", version = "0.6.0" }
 feattle-ui = { path = "../feattle-ui", version = "0.6.0" }
 
 [dev-dependencies]
