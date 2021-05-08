@@ -8,6 +8,15 @@
 Featture toggles for Rust  (called "feattles", for short), extensible and with background
 synchronization and administration UI.
 
+### Features
+- Feature toggles that synchronize automatically with a backing storage
+- Feature toggles can be as simple `bool`, but can also be lists, maps and arbitrary tpes (
+  (through the [`FeattleValue`] trait).
+- Web UI with documentation, change history, validation
+- JSON API to read and set the toggles
+- Modular and extensible: use as much or as little of the bundled features as you want. Want to
+  use a different Web UI? A different storage layer? No problem.
+
 ### Example
 
 ```rust
@@ -85,7 +94,7 @@ will be created with `Default::default()`.
 
 ## Minimum supported Rust version
 
-As of this release, the MSRV is 1.45.0, as tested in the CI. A patch release will never require
+As of this release, the MSRV is 1.48.0, as tested in the CI. A patch release will never require
 a newer MSRV.
 
 ## Optional features

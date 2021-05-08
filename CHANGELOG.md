@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Update `feattle-ui` to 0.6.0
+- Minimum supported Rust version is now 1.48
 
 ## [feattle-ui 0.6.0] - 2021-05-08
 
@@ -17,6 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add new methods in `AdminPanel` (`list_feattles_api_v1()`, `show_feattle_api_v1()` and `edit_feattle_api_v1()`) adding
   access to a lower-level API
 - Expose new methods in `warp` as a JSON API under `/api/v1/`
+- Minimum supported Rust version is now 1.48
 
 ## [feattle 0.5.0] - 2021-03-23
 
