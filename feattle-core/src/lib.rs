@@ -172,11 +172,12 @@ pub trait Feattles<P>: FeattlesPrivate<P> {
     /// successful synchronization have never happened.
     fn current_values(&self) -> Option<MappedRwLockReadGuard<CurrentValues>> {
         let inner = self._read();
-        match inner.current_values.as_ref() {
-            None => None,
-            Some(_) => Some(RwLockReadGuard::map(inner, |x| {
+        if inner.current_values.is_none() {
+            None
+        } else {
+            Some(RwLockReadGuard::map(inner, |x| {
                 x.current_values.as_ref().unwrap()
-            })),
+            }))
         }
     }
 
