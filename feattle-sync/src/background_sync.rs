@@ -184,6 +184,7 @@ mod tests {
                 break;
             }
             tokio::task::yield_now().await;
+            time::sleep(Duration::from_millis(100)).await;
         }
 
         // No more updates
