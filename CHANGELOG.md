@@ -9,18 +9,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [feattle 0.7.0] - 2021-09-09
 
 ### Changed
+- Update `feattle-core` to 0.7.0
 - Update `feattle-sync` to 0.7.0
 - Update `feattle-ui` to 0.7.0
+- Minimum supported Rust version is now 1.51
+
+## [feattle-core 0.7.0] - 2021-09-09
+
+### Changed
+- Minimum supported Rust version is now 1.51
 
 ## [feattle-sync 0.7.0] - 2021-09-09
 
 ### Changed
 - Update `rusoto` to 0.47.0
+- Minimum supported Rust version is now 1.51
 
 ## [feattle-ui 0.7.0] - 2021-09-09
 
 ### Changed
 - Update `handlebars` to 4.1.2
+- Minimum supported Rust version is now 1.51
 
 ## [feattle 0.6.0] - 2021-05-08
 
@@ -28,7 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Update `feattle-core` to 0.6.0
 - Update `feattle-sync` to 0.6.0
 - Update `feattle-ui` to 0.6.0
-- Minimum supported Rust version is now 1.48
+- Minimum supported Rust version is now 1.51
 
 ## [feattle-core 0.6.0] - 2021-05-08
 
@@ -36,12 +45,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implement `serde::Serialize` for `LastReload`
 
 ### Changed
-- Minimum supported Rust version is now 1.48
+- Minimum supported Rust version is now 1.51
 
 ## [feattle-sync 0.6.0] - 2021-03-23
 
 ### Changed
-- Minimum supported Rust version is now 1.48
+- Minimum supported Rust version is now 1.51
 - Update `feattle-core` to 0.6.0
 
 ## [feattle-ui 0.6.0] - 2021-05-08
@@ -52,7 +61,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Expose new methods in `warp` as a JSON API under `/api/v1/`
 
 ### Changed
-- Minimum supported Rust version is now 1.48
+- Minimum supported Rust version is now 1.51
 - Update `feattle-core` to 0.6.0
 
 ## [feattle 0.5.0] - 2021-03-23
