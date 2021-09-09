@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [feattle 0.7.0] - 2021-09-09
+
+### Changed
+- Update `feattle-sync` to 0.7.0
+
+## [feattle-sync 0.7.0] - 2021-09-09
+
+### Changed
+- Update `rusoto` to 0.47.0
+
 ## [feattle 0.6.0] - 2021-05-08
 
 ### Changed

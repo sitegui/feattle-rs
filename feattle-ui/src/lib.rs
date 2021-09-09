@@ -163,11 +163,8 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
         key: &str,
     ) -> Result<v1::ShowFeattleResponse, RenderError<P::Error>> {
         let reload_failed = self.feattles.reload().await.is_err();
-        let definition = self
-            .feattles
-            .definition(&key)
-            .ok_or(RenderError::NotFound)?;
-        let history = self.feattles.history(&key).await?;
+        let definition = self.feattles.definition(key).ok_or(RenderError::NotFound)?;
+        let history = self.feattles.history(key).await?;
         Ok(v1::ShowFeattleResponse {
             definition,
             history,

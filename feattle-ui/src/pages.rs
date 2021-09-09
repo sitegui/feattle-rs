@@ -95,7 +95,7 @@ impl Pages {
                     "format": definition.format.tag,
                     "description": definition.description,
                     "value_overview": definition.value_overview,
-                    "last_modification": last_modification(&definition, last_reload),
+                    "last_modification": last_modification(definition, last_reload),
                 })
             })
             .collect();
@@ -151,7 +151,7 @@ impl Pages {
                 "format": definition.format.tag,
                 "description": definition.description,
                 "value_overview": definition.value_overview,
-                "last_modification": last_modification(&definition, last_reload),
+                "last_modification": last_modification(definition, last_reload),
                 "format_json": serde_json::to_string(&definition.format.kind)?,
                 "value_json": serde_json::to_string(&definition.value)?,
                 "label": self.label,
