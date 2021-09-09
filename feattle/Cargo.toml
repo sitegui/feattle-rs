@@ -20,7 +20,7 @@ warp = ["feattle-ui/warp"]
 [dependencies]
 feattle-core = { path = "../feattle-core", version = "0.6.0" }
 feattle-sync = { path = "../feattle-sync", version = "0.7.0" }
-feattle-ui = { path = "../feattle-ui", version = "0.6.0" }
+feattle-ui = { path = "../feattle-ui", version = "0.7.0" }
 
 [dev-dependencies]
 chrono = { version = "0.4.15", features = ["serde"] }
