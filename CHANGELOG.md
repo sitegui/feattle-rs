@@ -6,6 +6,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [feattle 0.8.0] - 2022-03-16
+
+### Changed
+- Update `feattle-core` to 0.8.0
+- Update `feattle-sync` to 0.8.0
+- Update `feattle-ui` to 0.8.0
+- Update parking_lot to `0.12.0`
+
+## [feattle-core 0.8.0] - 2022-03-16
+
+### Changed
+- Update parking_lot to `0.12.0`
+
+## [feattle-sync 0.8.0] - 2022-03-16
+
+### Changed
+- Update parking_lot to `0.12.0`
+
+## [feattle-ui 0.8.0] - 2022-03-16
+
+### Changed
+- Update parking_lot to `0.12.0`
+
 ## [feattle 0.7.0] - 2021-09-09
 
 ### Changed

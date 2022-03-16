@@ -283,7 +283,7 @@ dependencies = [
 
 [[package]]
 name = "feattle"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "chrono",
  "dotenv",
@@ -302,7 +302,7 @@ dependencies = [
 
 [[package]]
 name = "feattle-core"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -317,7 +317,7 @@ dependencies = [
 
 [[package]]
 name = "feattle-sync"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "async-trait",
  "chrono",
@@ -336,7 +336,7 @@ dependencies = [
 
 [[package]]
 name = "feattle-ui"
-version = "0.7.0"
+version = "0.8.0"
 dependencies = [
  "chrono",
  "feattle-core",
