@@ -9,6 +9,7 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryInto;
 use std::error::Error;
 use std::fmt::Debug;
+use std::fmt::Write;
 use std::str::FromStr;
 #[cfg(feature = "uuid")]
 use uuid::Uuid;
@@ -323,7 +324,7 @@ fn iter_overview<'a, T: FeattleValue + 'a>(iter: impl Iterator<Item = &'a T>) ->
 
     while let Some((i, value)) = iter.next() {
         if i == MAX_ITEMS {
-            overview += &format!(", ... {} more", iter.count() + 1);
+            write!(overview, ", ... {} more", iter.count() + 1).unwrap();
             break;
         } else if i > 0 {
             overview += ", ";
