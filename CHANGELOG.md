@@ -6,6 +6,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [feattle 0.9.0] - 2022-07-11
+
+### Changed
+- Update `feattle-core` to 0.9.0
+- Update `feattle-sync` to 0.9.0
+- Update `feattle-ui` to 0.9.0
+- Update rusoto to `0.48.0`
+- Update uuid to `1.1.2`
+
+## [feattle-core 0.9.0] - 2022-07-11
+
+### Changed
+- Update uuid to `1.1.2`
+
+## [feattle-sync 0.9.0] - 2022-07-11
+
+### Changed
+- Update rusoto to `0.48.0`
+- Update `feattle-core` to 0.9.0
+
+## [feattle-ui 0.9.0] - 2022-07-11
+
+### Changed
+- Update `feattle-core` to 0.9.0
+- Change `pagecdn` with `cdnjs`
+
 ## [feattle 0.8.0] - 2022-03-16
 
 ### Changed
