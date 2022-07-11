@@ -87,7 +87,7 @@
 //!
 //! # Minimum supported Rust version
 //!
-//! As of this release, the MSRV is 1.51.0, as tested in the CI. A patch release will never require
+//! As of this release, the MSRV is 1.57.0, as tested in the CI. A patch release will never require
 //! a newer MSRV.
 //!
 //! # Optional features
