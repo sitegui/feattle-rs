@@ -41,7 +41,7 @@ impl Disk {
 
         let contents = serde_json::to_string(&value)?;
         let mut file = File::create(self.dir.join(name)).await?;
-        Ok(file.write_all(contents.as_bytes()).await?)
+        file.write_all(contents.as_bytes()).await
     }
 
     async fn load<T: DeserializeOwned>(&self, name: &str) -> io::Result<Option<T>> {
