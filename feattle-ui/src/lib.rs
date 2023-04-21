@@ -1,8 +1,8 @@
 //! This crate implements an administration Web Interface for visualizing and modifying the feature
 //! flags (called "feattles", for short).
 //!
-//! It provides a web-framework-agnostic implementation in [`AdminPanel`] and a ready-to-use binding
-//! to `warp` in [`run_warp_server`]. Please refer to the
+//! It provides a web-framework-agnostic implementation in [`AdminPanel`] and ready-to-use bindings
+//! for `warp` and `axum`. Please refer to the
 //! [main package - `feattle`](https://crates.io/crates/feattle) for more information.
 //!
 //! Note that authentication is **not** provided out-of-the-box and you're the one responsible for
@@ -10,9 +10,12 @@
 //!
 //! # Optional features
 //!
+//! - **axum**: provides [`axum_router`] for a read-to-use integration with [`axum`]
 //! - **warp**: provides [`run_warp_server`] for a read-to-use integration with [`warp`]
 
 pub mod api;
+#[cfg(feature = "axum")]
+mod axum_ui;
 mod pages;
 #[cfg(feature = "warp")]
 mod warp_ui;
@@ -28,6 +31,8 @@ use std::sync::Arc;
 use crate::api::v1;
 #[cfg(feature = "warp")]
 pub use warp_ui::run_warp_server;
+#[cfg(feature = "axum")]
+pub use axum_ui::axum_router;
 
 /// The administration panel, agnostic to the choice of web-framework.
 ///

@@ -1,6 +1,6 @@
 [package]
 name = "feattle-ui"
-version = "0.9.0"
+version = "0.10.0"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
 description = "Featture toggles for Rust, extensible and with background synchronization and administration UI"
@@ -13,6 +13,7 @@ categories = ["config", "data-structures", "development-tools", "web-programming
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+axum = { version = "0.6.16", optional = true, default-features = false, features = ["form", "json"] }
 chrono = { version = "0.4.15", features = ["serde"] }
 feattle-core = { path = "../feattle-core", version = "0.9.0" }
 futures = "0.3.5"
@@ -24,6 +25,7 @@ thiserror = "1.0.20"
 warp = { version = "0.3.0", optional = true }
 
 [dev-dependencies]
+axum = { version = "0.6.16", features = ["tokio"] }
 tokio = { version = "1.4.0", features = ["macros", "rt"] }
 
 [package.metadata.docs.rs]

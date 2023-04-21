@@ -8,8 +8,8 @@
 This crate implements an administration Web Interface for visualizing and modifying the feature
 flags (called "feattles", for short).
 
-It provides a web-framework-agnostic implementation in [`AdminPanel`] and a ready-to-use binding
-to `warp` in [`run_warp_server`]. Please refer to the
+It provides a web-framework-agnostic implementation in [`AdminPanel`] and ready-to-use bindings
+for `warp` and `axum`. Please refer to the
 [main package - `feattle`](https://crates.io/crates/feattle) for more information.
 
 Note that authentication is **not** provided out-of-the-box and you're the one responsible for
@@ -17,6 +17,7 @@ controlling and protecting the access.
 
 ## Optional features
 
+- **axum**: provides [`axum_router`] for a read-to-use integration with [`axum`]
 - **warp**: provides [`run_warp_server`] for a read-to-use integration with [`warp`]
 
 ## License
