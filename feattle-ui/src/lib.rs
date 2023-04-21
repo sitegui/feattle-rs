@@ -29,10 +29,10 @@ use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::api::v1;
-#[cfg(feature = "warp")]
-pub use warp_ui::run_warp_server;
 #[cfg(feature = "axum")]
 pub use axum_ui::axum_router;
+#[cfg(feature = "warp")]
+pub use warp_ui::run_warp_server;
 
 /// The administration panel, agnostic to the choice of web-framework.
 ///

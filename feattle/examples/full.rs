@@ -1,3 +1,4 @@
+use axum_original::Server;
 use feattle::*;
 use rusoto_core::Region;
 use rusoto_s3::S3Client;
@@ -93,9 +94,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Serve the admin panel with `axum`
     let router = axum_router(panel);
-    tokio::spawn(
-        axum::Server::bind(&([127, 0, 0, 1], 3031).into()).serve(router.into_make_service()),
-    );
+    tokio::spawn(Server::bind(&([127, 0, 0, 1], 3031).into()).serve(router.into_make_service()));
 
     println!("Admin UI available in http://127.0.0.1:3030");
 
