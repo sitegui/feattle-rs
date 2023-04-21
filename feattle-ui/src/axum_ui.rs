@@ -42,7 +42,7 @@ struct EditFeattleForm {
 /// let my_toggles = Arc::new(MyToggles::new(NoPersistence));
 /// let admin_panel = Arc::new(AdminPanel::new(my_toggles, "Project Panda - DEV".to_owned()));
 ///
-/// let router = axum_router(admin_panel).await;
+/// let router = axum_router(admin_panel);
 ///
 /// Server::bind(&([127, 0, 0, 1], 3030).into())
 ///     .serve(router.into_make_service())

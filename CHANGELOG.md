@@ -10,11 +10,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Update `feattle-ui` to 0.10.0
+- Minimum supported Rust version is now 1.60
 
 ## [feattle-ui 0.10.0] - 2023-04-21
 
 ### Changed
 - Add optional support for `axum`
+- Minimum supported Rust version is now 1.60
 
 ## [feattle 0.9.0] - 2022-07-11
 

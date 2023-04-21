@@ -45,10 +45,10 @@
 //!
 //! // Start the admin UI with `warp`
 //! let admin_panel = Arc::new(AdminPanel::new(my_feattles.clone(), "Project Panda - DEV".to_owned()));
-//! tokio::spawn(run_warp_server(admin_panel, ([127, 0, 0, 1], 3030)));
+//! tokio::spawn(run_warp_server(admin_panel.clone(), ([127, 0, 0, 1], 3030)));
 //!
 //! // Or serve the admin panel with `axum`
-//! let router = axum_router(panel);
+//! let router = axum_router(admin_panel);
 //! tokio::spawn(
 //!     axum::Server::bind(&([127, 0, 0, 1], 3031).into()).serve(router.into_make_service()),
 //! );
@@ -93,7 +93,7 @@
 //!
 //! # Minimum supported Rust version
 //!
-//! As of this release, the MSRV is 1.57.0, as tested in the CI. A patch release will never require
+//! As of this release, the MSRV is 1.60.0, as tested in the CI. A patch release will never require
 //! a newer MSRV.
 //!
 //! # Optional features

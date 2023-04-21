@@ -1,4 +1,4 @@
-use axum_original::Server;
+use axum::Server;
 use feattle::*;
 use rusoto_core::Region;
 use rusoto_s3::S3Client;
@@ -7,7 +7,7 @@ use std::env;
 use std::error::Error;
 use std::sync::Arc;
 use tokio::time::Duration;
-use uuid_original::Uuid;
+use uuid::Uuid;
 
 // Declare the struct that will gather all the feature toggles.
 // Each field is turned into a method and allows a default value to be provided.
