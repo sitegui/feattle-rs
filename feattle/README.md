@@ -52,10 +52,10 @@ BackgroundSync::new(&my_feattles).spawn();
 
 // Start the admin UI with `warp`
 let admin_panel = Arc::new(AdminPanel::new(my_feattles.clone(), "Project Panda - DEV".to_owned()));
-tokio::spawn(run_warp_server(admin_panel, ([127, 0, 0, 1], 3030)));
+tokio::spawn(run_warp_server(admin_panel.clone(), ([127, 0, 0, 1], 3030)));
 
 // Or serve the admin panel with `axum`
-let router = axum_router(panel);
+let router = axum_router(admin_panel);
 tokio::spawn(
     axum::Server::bind(&([127, 0, 0, 1], 3031).into()).serve(router.into_make_service()),
 );
