@@ -1,6 +1,6 @@
 [package]
 name = "feattle"
-version = "0.9.0"
+version = "0.10.0"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
 description = "Featture toggles for Rust, extensible and with background synchronization and administration UI"
@@ -16,13 +16,15 @@ categories = ["config", "data-structures", "development-tools", "web-programming
 s3 = ["feattle-sync/s3"]
 uuid = ["feattle-core/uuid"]
 warp = ["feattle-ui/warp"]
+axum = ["feattle-ui/axum"]
 
 [dependencies]
 feattle-core = { path = "../feattle-core", version = "0.9.0" }
 feattle-sync = { path = "../feattle-sync", version = "0.9.0" }
-feattle-ui = { path = "../feattle-ui", version = "0.9.0" }
+feattle-ui = { path = "../feattle-ui", version = "0.10.0" }
 
 [dev-dependencies]
+axum = { version = "0.6.16", features = ["tokio"] }
 chrono = { version = "0.4.15", features = ["serde"] }
 dotenv = "0.15.0"
 env_logger = "0.10.0"
@@ -37,4 +39,4 @@ warp_original = { package = "warp", version = "0.3.0" }
 [[example]]
 name = "full"
 path = "examples/full.rs"
-required-features = ["s3", "uuid", "warp"]
+required-features = ["s3", "uuid", "warp", "axum"]

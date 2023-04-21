@@ -89,7 +89,13 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let panel = Arc::new(AdminPanel::new(features.clone(), admin_panel_label));
 
     // Serve the admin panel with `warp`
-    tokio::spawn(run_warp_server(panel, ([127, 0, 0, 1], 3030)));
+    tokio::spawn(run_warp_server(panel.clone(), ([127, 0, 0, 1], 3030)));
+
+    // Serve the admin panel with `axum`
+    let router = axum_router(panel);
+    tokio::spawn(
+        axum::Server::bind(&([127, 0, 0, 1], 3031).into()).serve(router.into_make_service()),
+    );
 
     println!("Admin UI available in http://127.0.0.1:3030");
 

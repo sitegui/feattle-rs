@@ -54,13 +54,19 @@ BackgroundSync::new(&my_feattles).spawn();
 let admin_panel = Arc::new(AdminPanel::new(my_feattles.clone(), "Project Panda - DEV".to_owned()));
 tokio::spawn(run_warp_server(admin_panel, ([127, 0, 0, 1], 3030)));
 
+// Or serve the admin panel with `axum`
+let router = axum_router(panel);
+tokio::spawn(
+    axum::Server::bind(&([127, 0, 0, 1], 3031).into()).serve(router.into_make_service()),
+);
+
 // Read values (note the use of `*`)
 assert_eq!(*my_feattles.is_cool(), true);
 assert_eq!(*my_feattles.max_blings(), 0);
 assert_eq!(*my_feattles.blocked_actions(), Vec::<String>::new());
 ```
 
-You can run a full example locally with: `cargo run --example full --features='s3 uuid warp'`.
+You can run a full example locally with: `cargo run --example full --features='s3 uuid warp axum'`.
 
 With this code, you'll get an Web Admin UI like:
 
@@ -106,6 +112,7 @@ cargo features:
 - **uuid**: will add support for [`uuid::Uuid`].
 - **s3**: provides [`S3`] to integrate with AWS' S3
 - **warp**: provides [`run_warp_server`] for a read-to-use integration with [`warp`]
+- **axum**: provides [`axum_router`] for a read-to-use integration with [`axum`]
 
 ### Crate's organization
 
