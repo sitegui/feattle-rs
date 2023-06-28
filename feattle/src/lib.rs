@@ -36,8 +36,15 @@
 //! #[tokio::main]
 //! async fn main() {
 //!     // Store their values and history in AWS' S3
+//!     use std::time::Duration;
 //!     let s3_client = S3Client::new(Region::default());
-//!     let persistence = Arc::new(S3::new(s3_client, "my-bucket".to_owned(), "some/s3/prefix/".to_owned()));
+//!     let timeout = Duration::from_secs(10);
+//!     let persistence = Arc::new(S3::new(
+//!         s3_client,
+//!         "my-bucket".to_owned(),
+//!         "some/s3/prefix/".to_owned(),
+//!         timeout,
+//!     ));
 //!    
 //!     // Create a new instance
 //!     let my_feattles = Arc::new(MyFeattles::new(persistence));

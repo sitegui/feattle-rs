@@ -8,7 +8,9 @@ use rusoto_s3::{GetObjectError, GetObjectRequest, PutObjectRequest, S3Client, S3
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::fmt;
+use std::time::Duration;
 use tokio::io::AsyncReadExt;
+use tokio::time;
 
 /// Persist the data in an [AWS S3](https://aws.amazon.com/s3/) bucket.
 ///
@@ -17,6 +19,7 @@ use tokio::io::AsyncReadExt;
 /// # Example
 /// ```
 /// use std::sync::Arc;
+/// use std::time::Duration;
 /// use feattle_core::{feattles, Feattles};
 /// use feattle_sync::S3;
 /// use rusoto_s3::S3Client;
@@ -31,7 +34,13 @@ use tokio::io::AsyncReadExt;
 /// // Create a S3 client, read more at the official documentation https://www.rusoto.org
 /// let s3_client = S3Client::new(Region::default());
 ///
-/// let persistence = Arc::new(S3::new(s3_client, "my-bucket".to_owned(), "some/s3/prefix/".to_owned()));
+/// let timeout = Duration::from_secs(10);
+/// let persistence = Arc::new(S3::new(
+///     s3_client,
+///     "my-bucket".to_owned(),
+///     "some/s3/prefix/".to_owned(),
+///     timeout,
+/// ));
 /// let my_toggles = MyToggles::new(persistence);
 /// ```
 #[derive(Clone)]
@@ -39,6 +48,7 @@ pub struct S3 {
     client: S3Client,
     bucket: String,
     prefix: String,
+    timeout: Duration,
 }
 
 impl fmt::Debug for S3 {
@@ -88,39 +98,37 @@ impl<E> From<RusotoError<E>> for S3Error {
 }
 
 impl S3 {
-    pub fn new(client: S3Client, bucket: String, prefix: String) -> Self {
+    pub fn new(client: S3Client, bucket: String, prefix: String, timeout: Duration) -> Self {
         S3 {
             client,
             bucket,
             prefix,
+            timeout,
         }
     }
 
     async fn save<T: Serialize>(&self, name: &str, value: T) -> Result<(), BoxError> {
         let key = format!("{}{}", self.prefix, name);
         let contents = serde_json::to_string(&value)?;
-        self.client
-            .put_object(PutObjectRequest {
-                body: Some(contents.into_bytes().into()),
-                bucket: self.bucket.clone(),
-                key,
-                ..Default::default()
-            })
-            .await?;
+        let put_future = self.client.put_object(PutObjectRequest {
+            body: Some(contents.into_bytes().into()),
+            bucket: self.bucket.clone(),
+            key,
+            ..Default::default()
+        });
+        time::timeout(self.timeout, put_future).await??;
+
         Ok(())
     }
 
     async fn load<T: DeserializeOwned>(&self, name: &str) -> Result<Option<T>, BoxError> {
         let key = format!("{}{}", self.prefix, name);
-        match self
-            .client
-            .get_object(GetObjectRequest {
-                bucket: self.bucket.clone(),
-                key,
-                ..Default::default()
-            })
-            .await
-        {
+        let get_future = self.client.get_object(GetObjectRequest {
+            bucket: self.bucket.clone(),
+            key,
+            ..Default::default()
+        });
+        match time::timeout(self.timeout, get_future).await? {
             Err(RusotoError::Service(GetObjectError::NoSuchKey(_))) => Ok(None),
             Ok(response) => match response.body {
                 None => Ok(None),
@@ -216,6 +224,7 @@ mod tests {
                 .unwrap();
         }
 
-        test_persistence(S3::new(client, bucket, prefix)).await;
+        let timeout = Duration::from_secs(10);
+        test_persistence(S3::new(client, bucket, prefix, timeout)).await;
     }
 }
