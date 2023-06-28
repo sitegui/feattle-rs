@@ -5,12 +5,12 @@
 //! used to create your own custom logic, however some implementors are available in the package
 //! `feattle-sync`.
 
+use crate::BoxError;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::BTreeMap;
-use std::error::Error;
 
 /// Responsible for storing and loading data from a permanent storage.
 ///
@@ -47,25 +47,23 @@ use std::error::Error;
 /// ```
 ///
 /// # Errors
-/// The persistence layer can define their own error type, that will be bubbled up by other error
+/// The persistence layer can return an error, that will be bubbled up by other error
 /// types, like [`super::UpdateError`] and [`super::HistoryError`].
 #[async_trait]
-pub trait Persist {
-    type Error: Error + Send + Sync + 'static;
-
+pub trait Persist: Send + Sync {
     /// Save current state of all feattles.
-    async fn save_current(&self, value: &CurrentValues) -> Result<(), Self::Error>;
+    async fn save_current(&self, value: &CurrentValues) -> Result<(), BoxError>;
 
     /// Load the current state of all feattles. With no previous state existed, `Ok(None)` should be
     /// returned.
-    async fn load_current(&self) -> Result<Option<CurrentValues>, Self::Error>;
+    async fn load_current(&self) -> Result<Option<CurrentValues>, BoxError>;
 
     /// Save the full history of a single feattle.
-    async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), Self::Error>;
+    async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), BoxError>;
 
     /// Load the full history of a single feattle. With the feattle has no history, `Ok(None)`
     /// should be returned.
-    async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, Self::Error>;
+    async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, BoxError>;
 }
 
 /// Store the current values of all feattles
@@ -118,21 +116,19 @@ pub struct NoPersistence;
 
 #[async_trait]
 impl Persist for NoPersistence {
-    type Error = std::io::Error;
-
-    async fn save_current(&self, _value: &CurrentValues) -> Result<(), Self::Error> {
+    async fn save_current(&self, _value: &CurrentValues) -> Result<(), BoxError> {
         Ok(())
     }
 
-    async fn load_current(&self) -> Result<Option<CurrentValues>, Self::Error> {
+    async fn load_current(&self) -> Result<Option<CurrentValues>, BoxError> {
         Ok(None)
     }
 
-    async fn save_history(&self, _key: &str, _value: &ValueHistory) -> Result<(), Self::Error> {
+    async fn save_history(&self, _key: &str, _value: &ValueHistory) -> Result<(), BoxError> {
         Ok(())
     }
 
-    async fn load_history(&self, _key: &str) -> Result<Option<ValueHistory>, Self::Error> {
+    async fn load_history(&self, _key: &str) -> Result<Option<ValueHistory>, BoxError> {
         Ok(None)
     }
 }

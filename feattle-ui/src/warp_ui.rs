@@ -1,9 +1,7 @@
 use crate::api::v1;
 use crate::{AdminPanel, RenderError, RenderedPage};
-use feattle_core::persist::Persist;
 use feattle_core::{Feattles, UpdateError};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
 use std::net::SocketAddr;
 use std::sync::Arc;
 use warp::filters::path;
@@ -12,7 +10,7 @@ use warp::reject::Reject;
 use warp::{reject, reply, Filter, Rejection, Reply};
 
 #[derive(Debug)]
-struct RequestError<PersistError: Error + Send + Sync + 'static>(RenderError<PersistError>);
+struct RequestError(RenderError);
 
 #[derive(Debug, Deserialize)]
 struct EditFeattleForm {
@@ -49,19 +47,18 @@ struct EditFeattleForm {
 /// # Ok(())
 /// # }
 /// ```
-pub async fn run_warp_server<F, P>(
-    admin_panel: Arc<AdminPanel<F, P>>,
+pub async fn run_warp_server<F>(
+    admin_panel: Arc<AdminPanel<F>>,
     addr: impl Into<SocketAddr> + 'static,
 ) where
-    F: Feattles<P> + Sync + Send + 'static,
-    P: Persist + Sync + Send + 'static,
+    F: Feattles + Sync + Send + 'static,
 {
     let admin_panel = warp::any().map(move || admin_panel.clone());
 
     let list_feattles = warp::path::end()
         .and(warp::get())
         .and(admin_panel.clone())
-        .and_then(|admin_panel: Arc<AdminPanel<F, P>>| async move {
+        .and_then(|admin_panel: Arc<AdminPanel<F>>| async move {
             admin_panel
                 .list_feattles()
                 .await
@@ -72,38 +69,34 @@ pub async fn run_warp_server<F, P>(
     let list_feattles_api = warp::path!("feattles")
         .and(warp::get())
         .and(admin_panel.clone())
-        .and_then(|admin_panel: Arc<AdminPanel<F, P>>| async move {
+        .and_then(|admin_panel: Arc<AdminPanel<F>>| async move {
             to_json_result(admin_panel.list_feattles_api_v1().await)
         });
 
     let show_feattle = warp::path!("feattle" / String)
         .and(warp::get())
         .and(admin_panel.clone())
-        .and_then(
-            |key: String, admin_panel: Arc<AdminPanel<F, P>>| async move {
-                admin_panel
-                    .show_feattle(&key)
-                    .await
-                    .map_err(to_rejection)
-                    .map(to_reply)
-            },
-        );
+        .and_then(|key: String, admin_panel: Arc<AdminPanel<F>>| async move {
+            admin_panel
+                .show_feattle(&key)
+                .await
+                .map_err(to_rejection)
+                .map(to_reply)
+        });
 
     let show_feattle_api = warp::path!("feattle" / String)
         .and(warp::get())
         .and(admin_panel.clone())
-        .and_then(
-            |key: String, admin_panel: Arc<AdminPanel<F, P>>| async move {
-                to_json_result(admin_panel.show_feattle_api_v1(&key).await)
-            },
-        );
+        .and_then(|key: String, admin_panel: Arc<AdminPanel<F>>| async move {
+            to_json_result(admin_panel.show_feattle_api_v1(&key).await)
+        });
 
     let edit_feattle = warp::path!("feattle" / String / "edit")
         .and(warp::post())
         .and(admin_panel.clone())
         .and(warp::body::form())
         .and_then(
-            |key: String, admin_panel: Arc<AdminPanel<F, P>>, form: EditFeattleForm| async move {
+            |key: String, admin_panel: Arc<AdminPanel<F>>, form: EditFeattleForm| async move {
                 admin_panel
                     .edit_feattle(&key, &form.value_json, "admin".to_owned())
                     .await
@@ -119,7 +112,7 @@ pub async fn run_warp_server<F, P>(
             .and(warp::body::json())
             .and_then(
                 |key: String,
-                 admin_panel: Arc<AdminPanel<F, P>>,
+                 admin_panel: Arc<AdminPanel<F>>,
                  request: v1::EditFeattleRequest| async move {
                     to_json_result(admin_panel.edit_feattle_api_v1(&key, request).await)
                 },
@@ -129,7 +122,7 @@ pub async fn run_warp_server<F, P>(
         .and(warp::get())
         .and(admin_panel.clone())
         .and_then(
-            |file_name: String, admin_panel: Arc<AdminPanel<F, P>>| async move {
+            |file_name: String, admin_panel: Arc<AdminPanel<F>>| async move {
                 admin_panel
                     .render_public_file(&file_name)
                     .map_err(to_rejection)
@@ -152,15 +145,13 @@ pub async fn run_warp_server<F, P>(
     .await;
 }
 
-impl<PersistError: Error + Send + Sync + 'static> Reject for RequestError<PersistError> {}
+impl Reject for RequestError {}
 
 fn to_reply(page: RenderedPage) -> impl Reply {
     reply::with_header(page.content, "Content-Type", page.content_type)
 }
 
-fn to_rejection<PersistError: Error + Sync + Send + 'static>(
-    error: RenderError<PersistError>,
-) -> Rejection {
+fn to_rejection(error: RenderError) -> Rejection {
     if let RenderError::NotFound = error {
         reject::not_found()
     } else {
@@ -169,8 +160,8 @@ fn to_rejection<PersistError: Error + Sync + Send + 'static>(
     }
 }
 
-fn to_json_result<T: Serialize, PersistError: Error + Sync + Send + 'static>(
-    value: Result<T, RenderError<PersistError>>,
+fn to_json_result<T: Serialize>(
+    value: Result<T, RenderError>,
 ) -> Result<Box<dyn Reply>, Rejection> {
     match value {
         Ok(ok) => Ok(Box::new(reply::json(&ok))),

@@ -78,7 +78,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Create the S3 persistence
     let client = S3Client::new(Region::default());
-    let s3_storage = S3::new(client, s3_bucket, s3_key_prefix);
+    let s3_storage = Arc::new(S3::new(client, s3_bucket, s3_key_prefix));
 
     // Create the instance
     let features = Arc::new(SimulationToggles::new(s3_storage));

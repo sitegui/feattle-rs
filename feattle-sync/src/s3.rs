@@ -1,5 +1,6 @@
 use async_trait::async_trait;
 use feattle_core::persist::{CurrentValues, Persist, ValueHistory};
+use feattle_core::BoxError;
 use rusoto_core::credential::CredentialsError;
 use rusoto_core::request::BufferedHttpResponse;
 use rusoto_core::{HttpDispatchError, RusotoError};
@@ -94,7 +95,7 @@ impl S3 {
         }
     }
 
-    async fn save<T: Serialize>(&self, name: &str, value: T) -> Result<(), S3Error> {
+    async fn save<T: Serialize>(&self, name: &str, value: T) -> Result<(), BoxError> {
         let key = format!("{}{}", self.prefix, name);
         let contents = serde_json::to_string(&value)?;
         self.client
@@ -108,7 +109,7 @@ impl S3 {
         Ok(())
     }
 
-    async fn load<T: DeserializeOwned>(&self, name: &str) -> Result<Option<T>, S3Error> {
+    async fn load<T: DeserializeOwned>(&self, name: &str) -> Result<Option<T>, BoxError> {
         let key = format!("{}{}", self.prefix, name);
         match self
             .client
@@ -135,21 +136,19 @@ impl S3 {
 
 #[async_trait]
 impl Persist for S3 {
-    type Error = S3Error;
-
-    async fn save_current(&self, value: &CurrentValues) -> Result<(), S3Error> {
+    async fn save_current(&self, value: &CurrentValues) -> Result<(), BoxError> {
         self.save("current.json", value).await
     }
 
-    async fn load_current(&self) -> Result<Option<CurrentValues>, S3Error> {
+    async fn load_current(&self) -> Result<Option<CurrentValues>, BoxError> {
         self.load("current.json").await
     }
 
-    async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), S3Error> {
+    async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), BoxError> {
         self.save(&format!("history-{}.json", key), value).await
     }
 
-    async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, S3Error> {
+    async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, BoxError> {
         self.load(&format!("history-{}.json", key)).await
     }
 }

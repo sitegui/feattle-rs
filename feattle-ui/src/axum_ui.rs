@@ -4,10 +4,8 @@ use axum::extract::{Path, State};
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Redirect, Response};
 use axum::{routing, Form, Json, Router};
-use feattle_core::persist::Persist;
 use feattle_core::{Feattles, UpdateError};
 use serde::Deserialize;
-use std::error::Error;
 use std::sync::Arc;
 
 #[derive(Debug, Deserialize)]
@@ -51,39 +49,38 @@ struct EditFeattleForm {
 /// # Ok(())
 /// # }
 /// ```
-pub fn axum_router<F, P>(admin_panel: Arc<AdminPanel<F, P>>) -> Router<()>
+pub fn axum_router<F>(admin_panel: Arc<AdminPanel<F>>) -> Router<()>
 where
-    F: Feattles<P> + Sync + Send + 'static,
-    P: Persist + Sync + Send + 'static,
+    F: Feattles + Sync + Send + 'static,
 {
-    async fn list_feattles<F: Feattles<P> + Sync, P: Persist + Sync + 'static>(
-        State(admin_panel): State<Arc<AdminPanel<F, P>>>,
+    async fn list_feattles<F: Feattles + Sync>(
+        State(admin_panel): State<Arc<AdminPanel<F>>>,
     ) -> impl IntoResponse {
         admin_panel.list_feattles().await
     }
 
-    async fn list_feattles_api_v1<F: Feattles<P> + Sync, P: Persist + Sync + 'static>(
-        State(admin_panel): State<Arc<AdminPanel<F, P>>>,
+    async fn list_feattles_api_v1<F: Feattles + Sync>(
+        State(admin_panel): State<Arc<AdminPanel<F>>>,
     ) -> impl IntoResponse {
         admin_panel.list_feattles_api_v1().await.map(Json)
     }
 
-    async fn show_feattle<F: Feattles<P> + Sync, P: Persist + Sync + 'static>(
-        State(admin_panel): State<Arc<AdminPanel<F, P>>>,
+    async fn show_feattle<F: Feattles + Sync>(
+        State(admin_panel): State<Arc<AdminPanel<F>>>,
         Path(key): Path<String>,
     ) -> impl IntoResponse {
         admin_panel.show_feattle(&key).await
     }
 
-    async fn show_feattle_api_v1<F: Feattles<P> + Sync, P: Persist + Sync + 'static>(
-        State(admin_panel): State<Arc<AdminPanel<F, P>>>,
+    async fn show_feattle_api_v1<F: Feattles + Sync>(
+        State(admin_panel): State<Arc<AdminPanel<F>>>,
         Path(key): Path<String>,
     ) -> impl IntoResponse {
         admin_panel.show_feattle_api_v1(&key).await.map(Json)
     }
 
-    async fn edit_feattle<F: Feattles<P> + Sync, P: Persist + Sync + 'static>(
-        State(admin_panel): State<Arc<AdminPanel<F, P>>>,
+    async fn edit_feattle<F: Feattles + Sync>(
+        State(admin_panel): State<Arc<AdminPanel<F>>>,
         Path(key): Path<String>,
         Form(form): Form<EditFeattleForm>,
     ) -> impl IntoResponse {
@@ -93,8 +90,8 @@ where
             .map(|_| Redirect::to("/"))
     }
 
-    async fn edit_feattle_api_v1<F: Feattles<P> + Sync, P: Persist + Sync + 'static>(
-        State(admin_panel): State<Arc<AdminPanel<F, P>>>,
+    async fn edit_feattle_api_v1<F: Feattles + Sync>(
+        State(admin_panel): State<Arc<AdminPanel<F>>>,
         Path(key): Path<String>,
         Json(request): Json<v1::EditFeattleRequest>,
     ) -> impl IntoResponse {
@@ -104,8 +101,8 @@ where
             .map(Json)
     }
 
-    async fn render_public_file<F: Feattles<P> + Sync, P: Persist + Sync + 'static>(
-        State(admin_panel): State<Arc<AdminPanel<F, P>>>,
+    async fn render_public_file<F: Feattles + Sync>(
+        State(admin_panel): State<Arc<AdminPanel<F>>>,
         Path(file_name): Path<String>,
     ) -> impl IntoResponse {
         admin_panel.render_public_file(&file_name)
@@ -128,7 +125,7 @@ impl IntoResponse for RenderedPage {
     }
 }
 
-impl<E: Error + Send + Sync + 'static> IntoResponse for RenderError<E> {
+impl IntoResponse for RenderError {
     fn into_response(self) -> Response {
         match self {
             RenderError::NotFound | RenderError::Update(UpdateError::UnknownKey(_)) => {

@@ -1,4 +1,3 @@
-use feattle_core::persist::Persist;
 use feattle_core::Feattles;
 use std::sync::{Arc, Weak};
 use std::time::Duration;
@@ -75,10 +74,9 @@ impl<F> BackgroundSync<F> {
     /// returned handle, since the task will run by itself until the feattles instance gets dropped.
     ///
     /// Operational logs are generated with the crate [`log`].
-    pub fn spawn<P>(self) -> JoinHandle<()>
+    pub fn spawn(self) -> JoinHandle<()>
     where
-        F: Feattles<P> + Sync + Send + 'static,
-        P: Persist + Sync + 'static,
+        F: Feattles + Sync + Send + 'static,
     {
         tokio::spawn(async move {
             while let Some(feattles) = self.feattles.upgrade() {
@@ -103,8 +101,8 @@ impl<F> BackgroundSync<F> {
 mod tests {
     use super::*;
     use async_trait::async_trait;
-    use feattle_core::persist::{CurrentValues, ValueHistory};
-    use feattle_core::{feattles, Feattles};
+    use feattle_core::persist::{CurrentValues, Persist, ValueHistory};
+    use feattle_core::{feattles, BoxError, Feattles};
     use parking_lot::Mutex;
     use tokio::time;
     use tokio::time::Instant;
@@ -136,24 +134,23 @@ mod tests {
 
     #[async_trait]
     impl Persist for MockPersistence {
-        type Error = SomeError;
-        async fn save_current(&self, _value: &CurrentValues) -> Result<(), Self::Error> {
+        async fn save_current(&self, _value: &CurrentValues) -> Result<(), BoxError> {
             unimplemented!()
         }
-        async fn load_current(&self) -> Result<Option<CurrentValues>, Self::Error> {
+        async fn load_current(&self) -> Result<Option<CurrentValues>, BoxError> {
             let mut call_instants = self.call_instants.lock();
             call_instants.push(Instant::now());
             if call_instants.len() == 3 {
                 // Second call returns an error
-                Err(SomeError)
+                Err(Box::new(SomeError))
             } else {
                 Ok(None)
             }
         }
-        async fn save_history(&self, _key: &str, _value: &ValueHistory) -> Result<(), Self::Error> {
+        async fn save_history(&self, _key: &str, _value: &ValueHistory) -> Result<(), BoxError> {
             unimplemented!()
         }
-        async fn load_history(&self, _key: &str) -> Result<Option<ValueHistory>, Self::Error> {
+        async fn load_history(&self, _key: &str) -> Result<Option<ValueHistory>, BoxError> {
             unimplemented!()
         }
     }
@@ -166,7 +163,7 @@ mod tests {
 
         time::pause();
 
-        let persistence = MockPersistence::new();
+        let persistence = Arc::new(MockPersistence::new());
         let toggles = Arc::new(MyToggles::new(persistence.clone()));
         BackgroundSync::new(&toggles).spawn();
 

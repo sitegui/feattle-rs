@@ -21,11 +21,8 @@ mod pages;
 mod warp_ui;
 
 use crate::pages::{PageError, Pages};
-use feattle_core::persist::Persist;
-use feattle_core::{Feattles, HistoryError, UpdateError};
+use feattle_core::{BoxError, Feattles, HistoryError, UpdateError};
 use serde_json::Value;
-use std::error::Error;
-use std::marker::PhantomData;
 use std::sync::Arc;
 
 use crate::api::v1;
@@ -62,10 +59,9 @@ pub use warp_ui::run_warp_server;
 /// # Ok(())
 /// # }
 /// ```
-pub struct AdminPanel<F, P> {
+pub struct AdminPanel<F> {
     feattles: Arc<F>,
     pages: Pages,
-    _phantom: PhantomData<P>,
 }
 
 /// Represent a rendered page
@@ -79,7 +75,7 @@ pub struct RenderedPage {
 
 /// Represent what can go wrong while handling a request
 #[derive(Debug, thiserror::Error)]
-pub enum RenderError<PersistError: Error + Send + Sync + 'static> {
+pub enum RenderError {
     /// The requested page does not exist
     #[error("the requested page does not exist")]
     NotFound,
@@ -91,16 +87,16 @@ pub enum RenderError<PersistError: Error + Send + Sync + 'static> {
     Serialization(#[from] serde_json::Error),
     /// Failed to recover history information
     #[error("failed to recover history information")]
-    History(#[from] HistoryError<PersistError>),
+    History(#[from] HistoryError),
     /// Failed to update value
     #[error("failed to update value")]
-    Update(#[from] UpdateError<PersistError>),
+    Update(#[from] UpdateError),
     /// Failed to reload new version
     #[error("failed to reload new version")]
-    Reload(#[source] PersistError),
+    Reload(#[source] BoxError),
 }
 
-impl<PersistError: Error + Send + Sync + 'static> From<PageError> for RenderError<PersistError> {
+impl From<PageError> for RenderError {
     fn from(error: PageError) -> Self {
         match error {
             PageError::NotFound => RenderError::NotFound,
@@ -110,13 +106,12 @@ impl<PersistError: Error + Send + Sync + 'static> From<PageError> for RenderErro
     }
 }
 
-impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
+impl<F: Feattles + Sync> AdminPanel<F> {
     /// Create a new UI provider for a given feattles and a user-visible label
     pub fn new(feattles: Arc<F>, label: String) -> Self {
         AdminPanel {
             feattles,
             pages: Pages::new(label),
-            _phantom: PhantomData,
         }
     }
 
@@ -124,7 +119,7 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
     /// modify them. This page is somewhat the "home screen" of the UI.
     ///
     /// To ensure fresh data is displayed, [`Feattles::reload()`] is called.
-    pub async fn list_feattles(&self) -> Result<RenderedPage, RenderError<P::Error>> {
+    pub async fn list_feattles(&self) -> Result<RenderedPage, RenderError> {
         let data = self.list_feattles_api_v1().await?;
         Ok(self
             .pages
@@ -134,9 +129,7 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
     /// The JSON-API equivalent of [`AdminPanel::list_feattles()`].
     ///
     /// To ensure fresh data is displayed, [`Feattles::reload()`] is called.
-    pub async fn list_feattles_api_v1(
-        &self,
-    ) -> Result<v1::ListFeattlesResponse, RenderError<P::Error>> {
+    pub async fn list_feattles_api_v1(&self) -> Result<v1::ListFeattlesResponse, RenderError> {
         let reload_failed = self.feattles.reload().await.is_err();
         Ok(v1::ListFeattlesResponse {
             definitions: self.feattles.definitions(),
@@ -150,7 +143,7 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
     /// POST method in url-encoded format with a single field called "value_json".
     ///
     /// To ensure fresh data is displayed, [`Feattles::reload()`] is called.
-    pub async fn show_feattle(&self, key: &str) -> Result<RenderedPage, RenderError<P::Error>> {
+    pub async fn show_feattle(&self, key: &str) -> Result<RenderedPage, RenderError> {
         let data = self.show_feattle_api_v1(key).await?;
         Ok(self.pages.render_feattle(
             &data.definition,
@@ -166,7 +159,7 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
     pub async fn show_feattle_api_v1(
         &self,
         key: &str,
-    ) -> Result<v1::ShowFeattleResponse, RenderError<P::Error>> {
+    ) -> Result<v1::ShowFeattleResponse, RenderError> {
         let reload_failed = self.feattles.reload().await.is_err();
         let definition = self.feattles.definition(key).ok_or(RenderError::NotFound)?;
         let history = self.feattles.history(key).await?;
@@ -189,7 +182,7 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
         key: &str,
         value_json: &str,
         modified_by: String,
-    ) -> Result<(), RenderError<P::Error>> {
+    ) -> Result<(), RenderError> {
         let value: Value = serde_json::from_str(value_json)?;
         self.edit_feattle_api_v1(key, v1::EditFeattleRequest { value, modified_by })
             .await?;
@@ -204,7 +197,7 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
         &self,
         key: &str,
         request: v1::EditFeattleRequest,
-    ) -> Result<v1::EditFeattleResponse, RenderError<P::Error>> {
+    ) -> Result<v1::EditFeattleResponse, RenderError> {
         log::info!(
             "Received edit request for key {} with value {}",
             key,
@@ -219,7 +212,7 @@ impl<F: Feattles<P> + Sync, P: Persist + Sync + 'static> AdminPanel<F, P> {
 
     /// Renders a public file with the given path. The pages include public files like
     /// "/public/some/path.js", but this method should be called with only the "some/path.js" part.
-    pub fn render_public_file(&self, path: &str) -> Result<RenderedPage, RenderError<P::Error>> {
+    pub fn render_public_file(&self, path: &str) -> Result<RenderedPage, RenderError> {
         Ok(self.pages.render_public_file(path)?)
     }
 }
@@ -238,7 +231,7 @@ mod tests {
         use feattle_core::persist::NoPersistence;
 
         // `NoPersistence` here is just a mock for the sake of the example
-        let my_toggles = Arc::new(MyToggles::new(NoPersistence));
+        let my_toggles = Arc::new(MyToggles::new(Arc::new(NoPersistence)));
         my_toggles.reload().await.unwrap();
         let admin_panel = Arc::new(AdminPanel::new(
             my_toggles,

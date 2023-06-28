@@ -106,11 +106,15 @@ use persist::*;
 use serde_json::Value;
 use std::error::Error;
 use std::fmt::Debug;
+use std::sync::Arc;
 use thiserror::Error;
+
+/// Represents a type-erased error that comes from some external source
+pub type BoxError = Box<dyn Error + Send + Sync>;
 
 /// The error type returned by [`Feattles::update()`]
 #[derive(Error, Debug)]
-pub enum UpdateError<PersistError: Error + Send + Sync + 'static> {
+pub enum UpdateError {
     /// Cannot update because current values were never successfully loaded from the persist layer
     #[error("cannot update because current values were never successfully loaded from the persist layer")]
     NeverReloaded,
@@ -126,18 +130,18 @@ pub enum UpdateError<PersistError: Error + Send + Sync + 'static> {
     ),
     /// Failed to persist new state
     #[error("failed to persist new state")]
-    Persistence(#[source] PersistError),
+    Persistence(#[source] BoxError),
 }
 
 /// The error type returned by [`Feattles::history()`]
 #[derive(Error, Debug)]
-pub enum HistoryError<PersistError: Error + Send + Sync + 'static> {
+pub enum HistoryError {
     /// The key is unknown
     #[error("the key {0} is unknown")]
     UnknownKey(String),
     /// Failed to load persisted state
     #[error("failed to load persisted state")]
-    Persistence(#[source] PersistError),
+    Persistence(#[source] BoxError),
 }
 
 /// The main trait of this crate.
@@ -145,15 +149,15 @@ pub enum HistoryError<PersistError: Error + Send + Sync + 'static> {
 /// The struct created with [`feattles!`] will implement this trait in addition to a method for each
 /// feattle. Read more at the [crate documentation](crate).
 #[async_trait]
-pub trait Feattles<P>: FeattlesPrivate<P> {
+pub trait Feattles: FeattlesPrivate {
     /// Create a new feattles instance, using the given persistence layer logic.
     ///
     /// All feattles will start with their default values. You can force an initial synchronization
     /// with [`Feattles::update`].
-    fn new(persistence: P) -> Self;
+    fn new(persistence: Arc<dyn Persist>) -> Self;
 
     /// Return a shared reference to the persistence layer.
-    fn persistence(&self) -> &P;
+    fn persistence(&self) -> &Arc<dyn Persist>;
 
     /// The list of all available keys.
     fn keys(&self) -> &'static [&'static str];
@@ -187,10 +191,7 @@ pub trait Feattles<P>: FeattlesPrivate<P> {
     /// If any of the feattle values fail to be parsed from previously persisted values, their
     /// updates will be skipped. Other feattles that parsed successfully will still be updated.
     /// In this case, a [`log::error!`] will be generated for each time it occurs.
-    async fn reload(&self) -> Result<(), P::Error>
-    where
-        P: Persist + Sync + 'static,
-    {
+    async fn reload(&self) -> Result<(), BoxError> {
         let current_values = self.persistence().load_current().await?;
         let mut inner = self._write();
         let now = Utc::now();
@@ -238,10 +239,7 @@ pub trait Feattles<P>: FeattlesPrivate<P> {
         key: &str,
         value: Value,
         modified_by: String,
-    ) -> Result<(), UpdateError<P::Error>>
-    where
-        P: Persist + Sync + 'static,
-    {
+    ) -> Result<(), UpdateError> {
         use UpdateError::*;
 
         // The update operation is made of 4 steps, each of which may fail:
@@ -348,10 +346,7 @@ pub trait Feattles<P>: FeattlesPrivate<P> {
     }
 
     /// Return the history for a single feattle. It can be potentially empty (not entries).
-    async fn history(&self, key: &str) -> Result<ValueHistory, HistoryError<P::Error>>
-    where
-        P: Persist + Sync + 'static,
-    {
+    async fn history(&self, key: &str) -> Result<ValueHistory, HistoryError> {
         // Assert the key exists
         if !self.keys().contains(&key) {
             return Err(HistoryError::UnknownKey(key.to_owned()));
@@ -370,7 +365,7 @@ pub trait Feattles<P>: FeattlesPrivate<P> {
 /// This struct is `pub` because the macro must have access to it, but should be otherwise invisible
 /// to the users of this crate.
 #[doc(hidden)]
-pub trait FeattlesPrivate<P> {
+pub trait FeattlesPrivate {
     type FeattleStruct: FeattlesStruct;
     fn _read(&self) -> RwLockReadGuard<InnerFeattles<Self::FeattleStruct>>;
     fn _write(&self) -> RwLockWriteGuard<InnerFeattles<Self::FeattleStruct>>;
@@ -388,23 +383,23 @@ mod tests {
     #[error("Some error")]
     struct SomeError;
 
-    #[derive(Default, Clone)]
-    struct MockPersistence(Arc<Mutex<MockPersistenceInner>>);
+    #[derive(Default)]
+    struct MockPersistence(Mutex<MockPersistenceInner>);
 
     #[derive(Default)]
     struct MockPersistenceInner {
         current: Option<CurrentValues>,
         history: BTreeMap<String, ValueHistory>,
-        next_error: Option<SomeError>,
+        next_error: Option<BoxError>,
     }
 
     impl MockPersistence {
         fn put_error(&self) {
-            let previous = self.0.lock().next_error.replace(SomeError);
+            let previous = self.0.lock().next_error.replace(Box::new(SomeError));
             assert!(previous.is_none());
         }
 
-        fn get_error(&self) -> Result<(), SomeError> {
+        fn get_error(&self) -> Result<(), BoxError> {
             match self.0.lock().next_error.take() {
                 None => Ok(()),
                 Some(e) => Err(e),
@@ -422,25 +417,23 @@ mod tests {
 
     #[async_trait]
     impl Persist for MockPersistence {
-        type Error = SomeError;
-
-        async fn save_current(&self, value: &CurrentValues) -> Result<(), Self::Error> {
+        async fn save_current(&self, value: &CurrentValues) -> Result<(), BoxError> {
             self.get_error().map(|_| {
                 self.0.lock().current = Some(value.clone());
             })
         }
 
-        async fn load_current(&self) -> Result<Option<CurrentValues>, Self::Error> {
+        async fn load_current(&self) -> Result<Option<CurrentValues>, BoxError> {
             self.get_error().map(|_| self.0.lock().current.clone())
         }
 
-        async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), Self::Error> {
+        async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), BoxError> {
             self.get_error().map(|_| {
                 self.0.lock().history.insert(key.to_owned(), value.clone());
             })
         }
 
-        async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, Self::Error> {
+        async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, BoxError> {
             self.get_error()
                 .map(|_| self.0.lock().history.get(key).cloned())
         }
@@ -456,13 +449,12 @@ mod tests {
             }
         }
 
-        let persistence = MockPersistence::default();
+        let persistence = Arc::new(MockPersistence::default());
         let config = Config::new(persistence.clone());
 
         // Initial state
         assert_eq!(*config.a(), 0);
         assert_eq!(*config.b(), 17);
-        assert!(Arc::ptr_eq(&config.persistence().0, &persistence.0));
         assert_eq!(config.keys(), &["a", "b"]);
         assert!(config.last_reload() == LastReload::Never);
         assert!(config.current_values().is_none());
