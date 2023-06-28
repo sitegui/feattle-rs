@@ -20,27 +20,26 @@ use std::collections::BTreeMap;
 ///
 /// ```
 /// use async_trait::async_trait;
+/// use feattle_core::BoxError;
 /// use feattle_core::persist::*;
 ///
 /// struct MyPersistenceLogic;
 ///
 /// #[async_trait]
 /// impl Persist for MyPersistenceLogic {
-///     type Error = std::io::Error;
-///
-///     async fn save_current(&self, value: &CurrentValues) -> Result<(), Self::Error> {
+///     async fn save_current(&self, value: &CurrentValues) -> Result<(), BoxError> {
 ///         unimplemented!()
 ///     }
 ///
-///     async fn load_current(&self) -> Result<Option<CurrentValues>, Self::Error> {
+///     async fn load_current(&self) -> Result<Option<CurrentValues>, BoxError> {
 ///         unimplemented!()
 ///     }
 ///
-///     async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), Self::Error> {
+///     async fn save_history(&self, key: &str, value: &ValueHistory) -> Result<(), BoxError> {
 ///         unimplemented!()
 ///     }
 ///
-///     async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, Self::Error> {
+///     async fn load_history(&self, key: &str) -> Result<Option<ValueHistory>, BoxError> {
 ///         unimplemented!()
 ///     }
 /// }

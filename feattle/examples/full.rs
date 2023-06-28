@@ -84,7 +84,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let features = Arc::new(SimulationToggles::new(s3_storage));
 
     // Sync in the background
-    BackgroundSync::new(&features).spawn();
+    BackgroundSync::new(&features).start().await;
 
     // Create the admin panel
     let panel = Arc::new(AdminPanel::new(features.clone(), admin_panel_label));

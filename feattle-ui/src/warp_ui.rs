@@ -40,7 +40,7 @@ struct EditFeattleForm {
 /// }
 ///
 /// // `NoPersistence` here is just a mock for the sake of the example
-/// let my_toggles = Arc::new(MyToggles::new(NoPersistence));
+/// let my_toggles = Arc::new(MyToggles::new(Arc::new(NoPersistence)));
 /// let admin_panel = Arc::new(AdminPanel::new(my_toggles, "Project Panda - DEV".to_owned()));
 ///
 /// run_warp_server(admin_panel, ([127, 0, 0, 1], 3030)).await;

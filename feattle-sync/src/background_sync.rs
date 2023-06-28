@@ -1,4 +1,4 @@
-use feattle_core::Feattles;
+use feattle_core::{BoxError, Feattles};
 use std::sync::{Arc, Weak};
 use std::time::Duration;
 use tokio::task::JoinHandle;
@@ -26,9 +26,9 @@ use tokio::time::sleep;
 /// }
 ///
 /// // `NoPersistence` here is just a mock for the sake of the example
-/// let toggles = Arc::new(MyToggles::new(NoPersistence));
+/// let toggles = Arc::new(MyToggles::new(Arc::new(NoPersistence)));
 ///
-/// BackgroundSync::new(&toggles).spawn();
+/// BackgroundSync::new(&toggles).start().await;
 /// # }
 /// ```
 #[derive(Debug)]
@@ -69,15 +69,15 @@ impl<F> BackgroundSync<F> {
         self.err_interval = value;
         self
     }
+}
 
+impl<F: Feattles + Sync + Send + 'static> BackgroundSync<F> {
     /// Spawn a new tokio task, returning its handle. Usually you do not want to anything with the
     /// returned handle, since the task will run by itself until the feattles instance gets dropped.
     ///
     /// Operational logs are generated with the crate [`log`].
-    pub fn spawn(self) -> JoinHandle<()>
-    where
-        F: Feattles + Sync + Send + 'static,
-    {
+    #[deprecated = "use `start_sync()` that will try a first update right away"]
+    pub fn spawn(self) -> JoinHandle<()> {
         tokio::spawn(async move {
             while let Some(feattles) = self.feattles.upgrade() {
                 match feattles.reload().await {
@@ -94,6 +94,55 @@ impl<F> BackgroundSync<F> {
 
             log::info!("Stop background sync since Feattles got dropped")
         })
+    }
+
+    /// Start the sync operation by executing an update right now and then spawning a new tokio
+    /// task.
+    ///
+    /// This call will block until the first update returns. If it fails, the obtained error will be
+    /// returned.
+    ///
+    /// Note that the return type is `Option<_>` and not `Result<_>`, to avoid confusion: even if
+    /// the first update fails, the sync process will continue in the background.
+    ///
+    /// The tokio task will run by itself until the feattles instance gets dropped.
+    ///
+    /// Operational logs are generated with the crate [`log`].
+    pub async fn start(self) -> Option<BoxError> {
+        let feattles = self.feattles.upgrade()?;
+
+        let first_error = feattles.reload().await.err();
+        let first_sleep = match &first_error {
+            Some(err) => {
+                log::warn!("Failed to sync Feattles: {:?}", err);
+                self.err_interval
+            }
+            None => {
+                log::debug!("Feattles updated");
+                self.ok_interval
+            }
+        };
+
+        tokio::spawn(async move {
+            sleep(first_sleep).await;
+
+            while let Some(feattles) = self.feattles.upgrade() {
+                match feattles.reload().await {
+                    Ok(()) => {
+                        log::debug!("Feattles updated");
+                        sleep(self.ok_interval).await;
+                    }
+                    Err(err) => {
+                        log::warn!("Failed to sync Feattles: {:?}", err);
+                        sleep(self.err_interval).await;
+                    }
+                }
+            }
+
+            log::info!("Stop background sync since Feattles got dropped")
+        });
+
+        first_error
     }
 }
 
@@ -165,7 +214,7 @@ mod tests {
 
         let persistence = Arc::new(MockPersistence::new());
         let toggles = Arc::new(MyToggles::new(persistence.clone()));
-        BackgroundSync::new(&toggles).spawn();
+        BackgroundSync::new(&toggles).start().await;
 
         // First update: success
         // Second update after 30s: fails

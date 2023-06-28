@@ -14,6 +14,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 ///
 /// # Example
 /// ```
+/// use std::sync::Arc;
 /// use feattle_core::{feattles, Feattles};
 /// use feattle_sync::Disk;
 ///
@@ -23,7 +24,7 @@ use tokio::io::{AsyncReadExt, AsyncWriteExt};
 ///     }
 /// }
 ///
-/// let my_toggles = MyToggles::new(Disk::new("some/local/directory"));
+/// let my_toggles = MyToggles::new(Arc::new(Disk::new("some/local/directory")));
 /// ```
 #[derive(Debug, Clone)]
 pub struct Disk {

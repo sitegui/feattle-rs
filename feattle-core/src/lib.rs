@@ -5,6 +5,7 @@
 //!
 //! # Usage example
 //! ```
+//! use std::sync::Arc;
 //! use feattle_core::{feattles, Feattles};
 //! use feattle_core::persist::NoPersistence;
 //!
@@ -22,7 +23,7 @@
 //! }
 //!
 //! // Create a new instance (`NoPersistence` is just a mock for the persistence layer)
-//! let my_feattles = MyFeattles::new(NoPersistence);
+//! let my_feattles = MyFeattles::new(Arc::new(NoPersistence));
 //!
 //! // Read values (note the use of `*`)
 //! assert_eq!(*my_feattles.is_cool(), true);

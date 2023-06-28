@@ -150,7 +150,7 @@ macro_rules! feattles {
         }
 
         impl __internal::Feattles for $name {
-            fn new(persistence: Arc<dyn __internal::Persist>) -> Self {
+            fn new(persistence: __internal::Arc<dyn __internal::Persist>) -> Self {
                 $name(__internal::FeattlesImpl::new(
                     persistence,
                     __Feattles {
@@ -165,7 +165,7 @@ macro_rules! feattles {
                 ))
             }
 
-            fn persistence(&self) -> &Arc<dyn __internal::Persist> {
+            fn persistence(&self) -> &__internal::Arc<dyn __internal::Persist> {
                 &self.0.persistence
             }
 

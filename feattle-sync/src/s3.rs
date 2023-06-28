@@ -16,6 +16,7 @@ use tokio::io::AsyncReadExt;
 ///
 /// # Example
 /// ```
+/// use std::sync::Arc;
 /// use feattle_core::{feattles, Feattles};
 /// use feattle_sync::S3;
 /// use rusoto_s3::S3Client;
@@ -30,7 +31,7 @@ use tokio::io::AsyncReadExt;
 /// // Create a S3 client, read more at the official documentation https://www.rusoto.org
 /// let s3_client = S3Client::new(Region::default());
 ///
-/// let persistence = S3::new(s3_client, "my-bucket".to_owned(), "some/s3/prefix/".to_owned());
+/// let persistence = Arc::new(S3::new(s3_client, "my-bucket".to_owned(), "some/s3/prefix/".to_owned()));
 /// let my_toggles = MyToggles::new(persistence);
 /// ```
 #[derive(Clone)]
