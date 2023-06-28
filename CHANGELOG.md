@@ -6,6 +6,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [feattle 1.0.0] - 2023-06-28
+
+### Changed
+- Remove generic type from `Feattles` trait
+
+## [feattle-core 1.0.0] - 2023-06-28
+
+### Changed
+- Remove generic type from `Feattles` trait  
+This generic represented the persistence layer, because each concrete implementation was free to declare their own associate error type.
+However, this feature caused "generics contamination" in the API, forcing users to carry the generic type parameter around.
+Instead, we can force persistent implementation to use a boxed error, removing this syntax complexity.  
+This means that the constructor now takes `Arc<dyn Persist>` instead of a direct instance of `Persist`.
+
+## [feattle-sync 1.0.0] - 2023-06-28
+
+### Changed
+- Remove generic type from `Feattles` trait
+- Added `BackgroundSync::start()` that waits for the first update to complete
+- Deprecate `BackgroundSync::spawn()` since it will be replaced in favor of `start()`, that is more flexible.
+- Added a new parameter to `S3::new()`: the `timeout`. Any operation will return an error after this time has elapsed.
+
+## [feattle-ui 1.0.0] - 2023-06-28
+
+### Changed
+- Remove generic type from `Feattles` trait
+
 ## [feattle 0.10.0] - 2023-04-21
 
 ### Changed
