@@ -1,4 +1,4 @@
-///! Describes the schema of the JSON API
+//! Describes the schema of the JSON API
 use feattle_core::last_reload::LastReload;
 use feattle_core::persist::ValueHistory;
 use feattle_core::FeattleDefinition;
