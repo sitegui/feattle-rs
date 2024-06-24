@@ -9,6 +9,7 @@ Featture toggles for Rust  (called "feattles", for short), extensible and with b
 synchronization and administration UI.
 
 ### Features
+
 - Feature toggles that synchronize automatically with a backing storage
 - Feature toggles can be as simple `bool`, but can also be lists, maps and arbitrary tpes (
   (through the [`FeattleValue`] trait).
@@ -108,7 +109,7 @@ will be created with `Default::default()`.
 
 ## Minimum supported Rust version
 
-As of this release, the MSRV is 1.60.0, as tested in the CI. A patch release will never require
+As of this release, the MSRV is 1.63.0, as tested in the CI. A patch release will never require
 a newer MSRV.
 
 ## Optional features
@@ -138,10 +139,10 @@ provide a different storage or admin, you just need `feattle-core`.
 
 Licensed under either of
 
- * Apache License, Version 2.0
-   ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
- * MIT license
-   ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+* Apache License, Version 2.0
+  ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+* MIT license
+  ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
 
