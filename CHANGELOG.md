@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Renamed feature "s3" to "rusoto_s3" in `feattle` and `feattle-sync`
 - Renamed `feattle_sync::S3` to `feattle_sync::RusotoS3`
-- Minimum Rust version is now 1.63
+- Minimum Rust version is now 1.76
 
 ### Added
 
