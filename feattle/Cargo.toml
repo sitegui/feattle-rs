@@ -13,10 +13,11 @@ categories = ["config", "data-structures", "development-tools", "web-programming
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [features]
-s3 = ["feattle-sync/s3"]
+aws_sdk_s3 = ["feattle-sync/aws_sdk_s3"]
+axum = ["feattle-ui/axum"]
+rusoto_s3 = ["feattle-sync/rusoto_s3"]
 uuid = ["feattle-core/uuid"]
 warp = ["feattle-ui/warp"]
-axum = ["feattle-ui/axum"]
 
 [dependencies]
 feattle-core = { path = "../feattle-core", version = "1.0.0" }
@@ -24,6 +25,7 @@ feattle-sync = { path = "../feattle-sync", version = "1.0.0" }
 feattle-ui = { path = "../feattle-ui", version = "1.0.0" }
 
 [dev-dependencies]
+aws-config = { version = "1.5.3", features = ["behavior-version-latest"] }
 axum = { version = "0.6.16", features = ["tokio"] }
 chrono = { version = "0.4.15", features = ["serde"] }
 dotenv = "0.15.0"
@@ -39,4 +41,4 @@ warp = "0.3.0"
 [[example]]
 name = "full"
 path = "examples/full.rs"
-required-features = ["s3", "uuid", "warp", "axum"]
+required-features = ["rusoto_s3", "aws_sdk_s3", "uuid", "warp", "axum"]

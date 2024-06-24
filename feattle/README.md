@@ -40,30 +40,38 @@ feattles! {
     }
 }
 
-// Store their values and history in AWS' S3
-let s3_client = S3Client::new(Region::default());
-let persistence = S3::new(s3_client, "my-bucket".to_owned(), "some/s3/prefix/".to_owned());
+#[tokio::main]
+async fn main() {
+    // Store their values and history in AWS' S3
+    use std::time::Duration;
+    let config = aws_config::load_from_env().await;
+    let persistence = Arc::new(S3::new(
+        &config,
+        "my-bucket".to_owned(),
+        "some/s3/prefix/".to_owned(),
+    ));
 
-// Create a new instance
-let my_feattles = Arc::new(MyFeattles::new(persistence));
+    // Create a new instance
+    let my_feattles = Arc::new(MyFeattles::new(persistence));
 
-// Poll the storage in the background
-BackgroundSync::new(&my_feattles).spawn();
+    // Poll the storage in the background
+    BackgroundSync::new(&my_feattles).start().await;
 
-// Start the admin UI with `warp`
-let admin_panel = Arc::new(AdminPanel::new(my_feattles.clone(), "Project Panda - DEV".to_owned()));
-tokio::spawn(run_warp_server(admin_panel.clone(), ([127, 0, 0, 1], 3030)));
+    // Start the admin UI with `warp`
+    let admin_panel = Arc::new(AdminPanel::new(my_feattles.clone(), "Project Panda - DEV".to_owned()));
+    tokio::spawn(run_warp_server(admin_panel.clone(), ([127, 0, 0, 1], 3030)));
 
-// Or serve the admin panel with `axum`
-let router = axum_router(admin_panel);
-tokio::spawn(
-    axum::Server::bind(&([127, 0, 0, 1], 3031).into()).serve(router.into_make_service()),
-);
+    // Or serve the admin panel with `axum`
+    let router = axum_router(admin_panel);
+    tokio::spawn(
+        axum::Server::bind(&([127, 0, 0, 1], 3031).into()).serve(router.into_make_service()),
+    );
 
-// Read values (note the use of `*`)
-assert_eq!(*my_feattles.is_cool(), true);
-assert_eq!(*my_feattles.max_blings(), 0);
-assert_eq!(*my_feattles.blocked_actions(), Vec::<String>::new());
+    // Read values (note the use of `*`)
+    assert_eq!(*my_feattles.is_cool(), true);
+    assert_eq!(*my_feattles.max_blings(), 0);
+    assert_eq!(*my_feattles.blocked_actions(), Vec::<String>::new());
+}
 ```
 
 You can run a full example locally with: `cargo run --example full --features='s3 uuid warp axum'`.
@@ -110,7 +118,8 @@ or Web Framework (or any at all). For some out-of-the-box functionality, you can
 cargo features:
 
 - **uuid**: will add support for [`uuid::Uuid`].
-- **s3**: provides [`S3`] to integrate with AWS' S3
+- **rusoto_s3**: provides [`RusotoS3`] to integrate with AWS' S3
+- **aws_sdk_s3**: provides [`S3`] to integrate with AWS' S3
 - **warp**: provides [`run_warp_server`] for a read-to-use integration with [`warp`]
 - **axum**: provides [`axum_router`] for a read-to-use integration with [`axum`]
 

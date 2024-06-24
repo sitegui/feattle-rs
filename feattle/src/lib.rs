@@ -37,13 +37,11 @@
 //! async fn main() {
 //!     // Store their values and history in AWS' S3
 //!     use std::time::Duration;
-//!     let s3_client = S3Client::new(Region::default());
-//!     let timeout = Duration::from_secs(10);
+//!     let config = aws_config::load_from_env().await;
 //!     let persistence = Arc::new(S3::new(
-//!         s3_client,
+//!         &config,
 //!         "my-bucket".to_owned(),
 //!         "some/s3/prefix/".to_owned(),
-//!         timeout,
 //!     ));
 //!    
 //!     // Create a new instance
@@ -113,7 +111,8 @@
 //! cargo features:
 //!
 //! - **uuid**: will add support for [`uuid::Uuid`].
-//! - **s3**: provides [`S3`] to integrate with AWS' S3
+//! - **rusoto_s3**: provides [`RusotoS3`] to integrate with AWS' S3
+//! - **aws_sdk_s3**: provides [`S3`] to integrate with AWS' S3
 //! - **warp**: provides [`run_warp_server`] for a read-to-use integration with [`warp`]
 //! - **axum**: provides [`axum_router`] for a read-to-use integration with [`axum`]
 //!

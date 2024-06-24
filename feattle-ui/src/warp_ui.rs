@@ -10,6 +10,7 @@ use warp::reject::Reject;
 use warp::{reject, reply, Filter, Rejection, Reply};
 
 #[derive(Debug)]
+#[allow(dead_code)]
 struct RequestError(RenderError);
 
 #[derive(Debug, Deserialize)]

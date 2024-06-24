@@ -10,17 +10,22 @@
 //!
 //! # Optional features
 //!
-//! - **s3**: provides [`S3`] to integrate with AWS' S3
+//! - **aws_sdk_s3**: provides [`S3`] to integrate with AWS' S3 using the crate `aws-sdk-s3` crate
+//! - **rusoto_s3**: provides [`RusotoS3`] to integrate with AWS' S3 using the crate `rusoto` crate
 
+#[cfg(feature = "aws_sdk_s3")]
+mod aws_sdk_s3;
 mod background_sync;
 mod disk;
-#[cfg(feature = "s3")]
-mod s3;
+#[cfg(feature = "rusoto_s3")]
+mod rusoto_s3;
 
+#[cfg(feature = "aws_sdk_s3")]
+pub use aws_sdk_s3::*;
 pub use background_sync::*;
 pub use disk::*;
-#[cfg(feature = "s3")]
-pub use s3::*;
+#[cfg(feature = "rusoto_s3")]
+pub use rusoto_s3::*;
 
 #[cfg(test)]
 pub mod tests {

@@ -17,7 +17,8 @@ It also provides a simple way to poll the persistence layer for updates in [`Bac
 
 ## Optional features
 
-- **s3**: provides [`S3`] to integrate with AWS' S3
+- **aws_sdk_s3**: provides [`S3`] to integrate with AWS' S3 using the crate `aws-sdk-s3` crate
+- **rusoto_s3**: provides [`RusotoS3`] to integrate with AWS' S3 using the crate `rusoto` crate
 
 ## License
 

@@ -1,10 +1,8 @@
 use async_trait::async_trait;
 use feattle_core::persist::{CurrentValues, Persist, ValueHistory};
 use feattle_core::BoxError;
-use rusoto_core::credential::CredentialsError;
-use rusoto_core::request::BufferedHttpResponse;
-use rusoto_core::{HttpDispatchError, RusotoError};
-use rusoto_s3::{GetObjectError, GetObjectRequest, PutObjectRequest, S3Client, S3 as RusotoS3};
+use rusoto_core::RusotoError;
+use rusoto_s3::{GetObjectError, GetObjectRequest, PutObjectRequest, S3Client, S3};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use std::fmt;
@@ -14,14 +12,14 @@ use tokio::time;
 
 /// Persist the data in an [AWS S3](https://aws.amazon.com/s3/) bucket.
 ///
-/// To use it, make sure to activate the cargo feature `"s3"` in your `Cargo.toml`.
+/// To use it, make sure to activate the cargo feature `"rusoto_s3"` in your `Cargo.toml`.
 ///
 /// # Example
 /// ```
 /// use std::sync::Arc;
 /// use std::time::Duration;
 /// use feattle_core::{feattles, Feattles};
-/// use feattle_sync::S3;
+/// use feattle_sync::RusotoS3;
 /// use rusoto_s3::S3Client;
 /// use rusoto_core::Region;
 ///
@@ -35,7 +33,7 @@ use tokio::time;
 /// let s3_client = S3Client::new(Region::default());
 ///
 /// let timeout = Duration::from_secs(10);
-/// let persistence = Arc::new(S3::new(
+/// let persistence = Arc::new(RusotoS3::new(
 ///     s3_client,
 ///     "my-bucket".to_owned(),
 ///     "some/s3/prefix/".to_owned(),
@@ -44,14 +42,14 @@ use tokio::time;
 /// let my_toggles = MyToggles::new(persistence);
 /// ```
 #[derive(Clone)]
-pub struct S3 {
+pub struct RusotoS3 {
     client: S3Client,
     bucket: String,
     prefix: String,
     timeout: Duration,
 }
 
-impl fmt::Debug for S3 {
+impl fmt::Debug for RusotoS3 {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("S3")
             .field("client", &"S3Client")
@@ -61,45 +59,9 @@ impl fmt::Debug for S3 {
     }
 }
 
-/// Represent what can go wrong when interfacing with AWS. This is based on
-/// [`rusoto_core::RusotoError`].
-#[derive(Debug, thiserror::Error)]
-pub enum S3Error {
-    #[error("An error occurred dispatching the HTTP request")]
-    HttpDispatch(HttpDispatchError),
-    #[error("An error was encountered with AWS credentials.")]
-    Credentials(CredentialsError),
-    #[error("A validation error occurred.  Details from AWS are provided.")]
-    Validation(String),
-    #[error("An error occurred parsing the response payload.")]
-    ParseError(String),
-    #[error("An unknown error occurred.  The raw HTTP response is provided.")]
-    Unknown(BufferedHttpResponse),
-    #[error("An error occurred when attempting to run a future as blocking")]
-    Blocking,
-    #[error("Failed to serialize or deserialize JSON")]
-    Json(#[from] serde_json::Error),
-    #[error("Failed to read from response")]
-    Io(#[from] std::io::Error),
-}
-
-impl<E> From<RusotoError<E>> for S3Error {
-    fn from(error: RusotoError<E>) -> Self {
-        match error {
-            RusotoError::Service(_) => unreachable!(),
-            RusotoError::HttpDispatch(e) => S3Error::HttpDispatch(e),
-            RusotoError::Credentials(e) => S3Error::Credentials(e),
-            RusotoError::Validation(e) => S3Error::Validation(e),
-            RusotoError::ParseError(e) => S3Error::ParseError(e),
-            RusotoError::Unknown(e) => S3Error::Unknown(e),
-            RusotoError::Blocking => S3Error::Blocking,
-        }
-    }
-}
-
-impl S3 {
+impl RusotoS3 {
     pub fn new(client: S3Client, bucket: String, prefix: String, timeout: Duration) -> Self {
-        S3 {
+        RusotoS3 {
             client,
             bucket,
             prefix,
@@ -144,7 +106,7 @@ impl S3 {
 }
 
 #[async_trait]
-impl Persist for S3 {
+impl Persist for RusotoS3 {
     async fn save_current(&self, value: &CurrentValues) -> Result<(), BoxError> {
         self.save("current.json", value).await
     }
@@ -171,8 +133,7 @@ mod tests {
     async fn s3() {
         use rusoto_core::Region;
         use rusoto_s3::{
-            Delete, DeleteObjectsRequest, ListObjectsV2Request, ObjectIdentifier, S3Client,
-            S3 as RusotoS3,
+            Delete, DeleteObjectsRequest, ListObjectsV2Request, ObjectIdentifier, S3Client, S3,
         };
         use std::env;
 
@@ -182,7 +143,7 @@ mod tests {
         // AWS_REGION, S3_BUCKET and S3_KEY_PREFIX accordingly
         let client = S3Client::new(Region::default());
         let bucket = env::var("S3_BUCKET").unwrap();
-        let prefix = env::var("S3_KEY_PREFIX").unwrap();
+        let prefix = format!("{}/rusoto-s3", env::var("S3_KEY_PREFIX").unwrap());
 
         // Clear all previous objects
         let objects_to_delete = client
@@ -225,6 +186,6 @@ mod tests {
         }
 
         let timeout = Duration::from_secs(10);
-        test_persistence(S3::new(client, bucket, prefix, timeout)).await;
+        test_persistence(RusotoS3::new(client, bucket, prefix, timeout)).await;
     }
 }
