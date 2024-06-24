@@ -1,7 +1,5 @@
 use axum::Server;
 use feattle::*;
-use rusoto_core::Region;
-use rusoto_s3::S3Client;
 use std::collections::BTreeMap;
 use std::env;
 use std::error::Error;
@@ -77,9 +75,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
     env_logger::init();
 
     // Create the S3 persistence
-    let client = S3Client::new(Region::default());
-    let timeout = Duration::from_secs(10);
-    let s3_storage = Arc::new(S3::new(client, s3_bucket, s3_key_prefix, timeout));
+    let config = aws_config::load_from_env().await;
+    let s3_storage = Arc::new(S3::new(&config, s3_bucket, s3_key_prefix));
 
     // Create the instance
     let features = Arc::new(SimulationToggles::new(s3_storage));
