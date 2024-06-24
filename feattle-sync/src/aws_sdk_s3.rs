@@ -18,7 +18,7 @@ use std::fmt;
 /// use std::sync::Arc;
 /// use std::time::Duration;
 /// use feattle_core::{feattles, Feattles};
-/// use rusoto_core::Region;
+/// use feattle_sync::S3;
 ///
 /// feattles! {
 ///     struct MyToggles {
@@ -29,14 +29,13 @@ use std::fmt;
 /// #[tokio::main]
 /// async fn main() {
 ///     // Create an AWS config, read more at the official documentation <https://docs.aws.amazon.com/sdk-for-rust/latest/dg/welcome.html>
+///     use feattle_sync::S3;
 ///     let config = aws_config::load_from_env().await;
 ///    
-///     let timeout = Duration::from_secs(10);
 ///     let persistence = Arc::new(S3::new(
 ///         &config,
 ///         "my-bucket".to_owned(),
 ///         "some/s3/prefix/".to_owned(),
-///         timeout,
 ///     ));
 ///     let my_toggles = MyToggles::new(persistence);
 /// }

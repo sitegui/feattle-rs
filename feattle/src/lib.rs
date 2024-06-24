@@ -13,8 +13,6 @@
 //! ## Example
 //!
 //! ```no_run
-//! use rusoto_s3::S3Client;
-//! use rusoto_core::Region;
 //! use feattle::*;
 //! use std::sync::Arc;
 //!
