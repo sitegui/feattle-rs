@@ -26,10 +26,10 @@ feattle-ui = { path = "../feattle-ui", version = "1.0.0" }
 
 [dev-dependencies]
 aws-config = { version = "1.5.3", features = ["behavior-version-latest"] }
-axum = { version = "0.6.16", features = ["tokio"] }
+axum = { version = "0.7.5", features = ["tokio"] }
 chrono = { version = "0.4.15", features = ["serde"] }
 dotenv = "0.15.0"
-env_logger = "0.10.0"
+env_logger = "0.11.3"
 rusoto_core = { version = "0.48.0" }
 rusoto_s3 = { version = "0.48.0" }
 serde = { version = "1.0.115", features = ["derive"] }

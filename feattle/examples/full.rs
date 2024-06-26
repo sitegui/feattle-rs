@@ -1,9 +1,10 @@
-use axum::Server;
 use feattle::*;
 use std::collections::BTreeMap;
 use std::env;
 use std::error::Error;
+use std::future::IntoFuture;
 use std::sync::Arc;
+use tokio::net::TcpListener;
 use tokio::time::Duration;
 use uuid::Uuid;
 
@@ -92,7 +93,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     // Serve the admin panel with `axum`
     let router = axum_router(panel);
-    tokio::spawn(Server::bind(&([127, 0, 0, 1], 3031).into()).serve(router.into_make_service()));
+    let listener = TcpListener::bind(("127.0.0.1", 3031)).await?;
+    tokio::spawn(axum::serve(listener, router.into_make_service()).into_future());
 
     println!("Admin UI available in http://127.0.0.1:3030");
 
