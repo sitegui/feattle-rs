@@ -34,7 +34,9 @@
 //! #[tokio::main]
 //! async fn main() {
 //!     // Store their values and history in AWS' S3
+//!     use std::future::IntoFuture;
 //!     use std::time::Duration;
+//!     use tokio::net::TcpListener;
 //!     let config = aws_config::load_from_env().await;
 //!     let persistence = Arc::new(S3::new(
 //!         &config,
@@ -54,9 +56,8 @@
 //!    
 //!     // Or serve the admin panel with `axum`
 //!     let router = axum_router(admin_panel);
-//!     tokio::spawn(
-//!         axum::Server::bind(&([127, 0, 0, 1], 3031).into()).serve(router.into_make_service()),
-//!     );
+//!     let listener = TcpListener::bind(("127.0.0.1", 3031)).await.unwrap();
+//!     tokio::spawn(axum::serve(listener, router.into_make_service()).into_future());
 //!    
 //!     // Read values (note the use of `*`)
 //!     assert_eq!(*my_feattles.is_cool(), true);

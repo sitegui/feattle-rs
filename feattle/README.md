@@ -9,7 +9,6 @@ Featture toggles for Rust  (called "feattles", for short), extensible and with b
 synchronization and administration UI.
 
 ### Features
-
 - Feature toggles that synchronize automatically with a backing storage
 - Feature toggles can be as simple `bool`, but can also be lists, maps and arbitrary tpes (
   (through the [`FeattleValue`] trait).
@@ -21,8 +20,6 @@ synchronization and administration UI.
 ### Example
 
 ```rust
-use rusoto_s3::S3Client;
-use rusoto_core::Region;
 use feattle::*;
 use std::sync::Arc;
 
@@ -44,7 +41,9 @@ feattles! {
 #[tokio::main]
 async fn main() {
     // Store their values and history in AWS' S3
+    use std::future::IntoFuture;
     use std::time::Duration;
+    use tokio::net::TcpListener;
     let config = aws_config::load_from_env().await;
     let persistence = Arc::new(S3::new(
         &config,
@@ -64,9 +63,8 @@ async fn main() {
 
     // Or serve the admin panel with `axum`
     let router = axum_router(admin_panel);
-    tokio::spawn(
-        axum::Server::bind(&([127, 0, 0, 1], 3031).into()).serve(router.into_make_service()),
-    );
+    let listener = TcpListener::bind(("127.0.0.1", 3031)).await.unwrap();
+    tokio::spawn(axum::serve(listener, router.into_make_service()).into_future());
 
     // Read values (note the use of `*`)
     assert_eq!(*my_feattles.is_cool(), true);
@@ -139,10 +137,10 @@ provide a different storage or admin, you just need `feattle-core`.
 
 Licensed under either of
 
-* Apache License, Version 2.0
-  ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
-* MIT license
-  ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
+ * Apache License, Version 2.0
+   ([LICENSE-APACHE](LICENSE-APACHE) or http://www.apache.org/licenses/LICENSE-2.0)
+ * MIT license
+   ([LICENSE-MIT](LICENSE-MIT) or http://opensource.org/licenses/MIT)
 
 at your option.
 

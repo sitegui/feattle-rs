@@ -26,11 +26,13 @@ struct EditFeattleForm {
 /// ```no_run
 /// # #[tokio::main]
 /// # async fn main() -> Result<(), Box<dyn std::error::Error>> {
+/// use std::future::IntoFuture;
 /// use feattle_ui::{AdminPanel, axum_router};
 /// use feattle_core::{feattles, Feattles};
 /// use feattle_core::persist::NoPersistence;
 /// use std::sync::Arc;
-/// use axum::Server;
+///
+/// use tokio::net::TcpListener;
 ///
 /// feattles! {
 ///     struct MyToggles { a: bool, b: i32 }
@@ -42,9 +44,8 @@ struct EditFeattleForm {
 ///
 /// let router = axum_router(admin_panel);
 ///
-/// Server::bind(&([127, 0, 0, 1], 3030).into())
-///     .serve(router.into_make_service())
-///     .await?;
+/// let listener = TcpListener::bind(("127.0.0.1", 3031)).await?;
+/// tokio::spawn(axum::serve(listener, router.into_make_service()).into_future());
 ///
 /// # Ok(())
 /// # }
