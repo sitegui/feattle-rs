@@ -5,13 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [feattle 2.0.0] - 2024-06-26
 
 ### Changed
 
-- Renamed feature "s3" to "rusoto_s3" in `feattle` and `feattle-sync`
-- Renamed `feattle_sync::S3` to `feattle_sync::RusotoS3`
-- Minimum Rust version is now 1.76
+- BREAKING: Renamed feature "s3" to "rusoto_s3" in `feattle` and `feattle-sync`
+- BREAKING: Renamed `feattle_sync::S3` to `feattle_sync::RusotoS3`
+- BREAKING: Upgraded from `axum` 0.6 to 0.7
+- BREAKING: Upgraded from `handlebars` 4 to 5
+- BREAKING: Minimum Rust version is now 1.76
 
 ### Added
 

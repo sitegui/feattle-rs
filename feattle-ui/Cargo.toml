@@ -1,6 +1,6 @@
 [package]
 name = "feattle-ui"
-version = "1.0.0"
+version = "2.0.0"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
 description = "Featture toggles for Rust, extensible and with background synchronization and administration UI"
@@ -15,7 +15,7 @@ categories = ["config", "data-structures", "development-tools", "web-programming
 [dependencies]
 axum = { version = "0.7.5", optional = true, default-features = false, features = ["form", "json"] }
 chrono = { version = "0.4.15", features = ["serde"] }
-feattle-core = { path = "../feattle-core", version = "1.0.0" }
+feattle-core = { path = "../feattle-core", version = "2.0.0" }
 futures = "0.3.5"
 handlebars = "5.1.2"
 log = "0.4.11"

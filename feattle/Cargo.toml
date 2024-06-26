@@ -1,6 +1,6 @@
 [package]
 name = "feattle"
-version = "1.0.0"
+version = "2.0.0"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2018"
 description = "Featture toggles for Rust, extensible and with background synchronization and administration UI"
@@ -20,9 +20,9 @@ uuid = ["feattle-core/uuid"]
 warp = ["feattle-ui/warp"]
 
 [dependencies]
-feattle-core = { path = "../feattle-core", version = "1.0.0" }
-feattle-sync = { path = "../feattle-sync", version = "1.0.0" }
-feattle-ui = { path = "../feattle-ui", version = "1.0.0" }
+feattle-core = { path = "../feattle-core", version = "2.0.0" }
+feattle-sync = { path = "../feattle-sync", version = "2.0.0" }
+feattle-ui = { path = "../feattle-ui", version = "2.0.0" }
 
 [dev-dependencies]
 aws-config = { version = "1.5.3", features = ["behavior-version-latest"] }
