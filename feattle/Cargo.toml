@@ -1,8 +1,9 @@
 [package]
 name = "feattle"
-version = "2.0.0"
+version = "3.0.0"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
-edition = "2018"
+edition = "2021"
+rust-version = "1.76.0"
 description = "Featture toggles for Rust, extensible and with background synchronization and administration UI"
 repository = "https://github.com/sitegui/feattle-rs"
 license = "MIT OR Apache-2.0"
@@ -20,20 +21,15 @@ uuid = ["feattle-core/uuid"]
 warp = ["feattle-ui/warp"]
 
 [dependencies]
-feattle-core = { path = "../feattle-core", version = "2.0.0" }
-feattle-sync = { path = "../feattle-sync", version = "2.0.0" }
-feattle-ui = { path = "../feattle-ui", version = "2.0.0" }
+feattle-core = { path = "../feattle-core", version = "2.0.1" }
+feattle-sync = { path = "../feattle-sync", version = "2.0.1" }
+feattle-ui = { path = "../feattle-ui", version = "3.0.0" }
 
 [dev-dependencies]
 aws-config = { version = "1.5.3", features = ["behavior-version-latest"] }
-axum = { version = "0.7.5", features = ["tokio"] }
-chrono = { version = "0.4.15", features = ["serde"] }
+axum = { version = "0.8.1", features = ["tokio"] }
 dotenv = "0.15.0"
 env_logger = "0.11.3"
-rusoto_core = { version = "0.48.0" }
-rusoto_s3 = { version = "0.48.0" }
-serde = { version = "1.0.115", features = ["derive"] }
-serde_json = "1.0.57"
 tokio = { version = "1.4.0", features = ["full"] }
 uuid = "1.1.2"
 warp = "0.3.0"
