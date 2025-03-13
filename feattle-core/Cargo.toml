@@ -1,9 +1,9 @@
 [package]
 name = "feattle-core"
-version = "2.0.1"
+version = "3.0.0"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2021"
-rust-version = "1.76.0"
+rust-version = "1.82.0"
 description = "Featture toggles for Rust, extensible and with background synchronization and administration UI"
 repository = "https://github.com/sitegui/feattle-rs"
 license = "MIT OR Apache-2.0"

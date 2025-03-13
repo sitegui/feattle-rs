@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- MSRV 1.82.0
 - Update `axum` 0.8, `handlebars` 6.3, `thiserror` 2.0
 - Use edition 2021
 
@@ -16,20 +17,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- MSRV 1.82.0
 - Update `axum` 0.8, `handlebars` 6.3, `thiserror` 2.0
 - Use edition 2021
 
-## [feattle-sync 2.0.1] - 2025-03-13
+## [feattle-sync 3.0.0] - 2025-03-13
 
 ### Changed
 
+- MSRV 1.82.0
 - Update `this-error` 2.0 (no public impact in the API)
 - Use edition 2021
 
-## [feattle-core 2.0.1] - 2025-03-13
+## [feattle-core 3.0.0] - 2025-03-13
 
 ### Changed
 
+- MSRV 1.82.0
 - Update `this-error` 2.0 (no public impact in the API)
 - Use edition 2021
 

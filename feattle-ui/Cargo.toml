@@ -3,7 +3,7 @@ name = "feattle-ui"
 version = "3.0.0"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2021"
-rust-version = "1.76.0"
+rust-version = "1.82.0"
 description = "Featture toggles for Rust, extensible and with background synchronization and administration UI"
 repository = "https://github.com/sitegui/feattle-rs"
 license = "MIT OR Apache-2.0"
@@ -16,7 +16,7 @@ categories = ["config", "data-structures", "development-tools", "web-programming
 [dependencies]
 axum = { version = "0.8.1", optional = true, default-features = false, features = ["form", "json"] }
 chrono = { version = "0.4.15", features = ["serde"] }
-feattle-core = { path = "../feattle-core", version = "2.0.1" }
+feattle-core = { path = "../feattle-core", version = "3.0.0" }
 handlebars = "6.3.1"
 log = "0.4.11"
 serde = { version = "1.0.115", features = ["derive"] }
