@@ -112,11 +112,11 @@ where
     Router::new()
         .route("/", routing::get(list_feattles))
         .route("/api/v1/feattles", routing::get(list_feattles_api_v1))
-        .route("/feattle/:key", routing::get(show_feattle))
-        .route("/api/v1/feattle/:key", routing::get(show_feattle_api_v1))
-        .route("/feattle/:key/edit", routing::post(edit_feattle))
-        .route("/api/v1/feattle/:key", routing::post(edit_feattle_api_v1))
-        .route("/public/:file_name", routing::get(render_public_file))
+        .route("/feattle/{key}", routing::get(show_feattle))
+        .route("/api/v1/feattle/{key}", routing::get(show_feattle_api_v1))
+        .route("/feattle/{key}/edit", routing::post(edit_feattle))
+        .route("/api/v1/feattle/{key}", routing::post(edit_feattle_api_v1))
+        .route("/public/{file_name}", routing::get(render_public_file))
         .with_state(admin_panel)
 }
 
