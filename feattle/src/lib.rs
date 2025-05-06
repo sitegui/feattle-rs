@@ -55,7 +55,7 @@
 //!     tokio::spawn(run_warp_server(admin_panel.clone(), ([127, 0, 0, 1], 3030)));
 //!    
 //!     // Or serve the admin panel with `axum`
-//!     let router = axum_router(admin_panel);
+//!     let router = axum_router(admin_panel, "admin");
 //!     let listener = TcpListener::bind(("127.0.0.1", 3031)).await.unwrap();
 //!     tokio::spawn(axum::serve(listener, router.into_make_service()).into_future());
 //!    
