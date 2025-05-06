@@ -23,9 +23,6 @@ use std::sync::Arc;
 /// For example, to extract the username from a trusted header:
 /// ```
 /// use axum::http::{HeaderMap, StatusCode};
-/// use axum::response::Response;
-/// use feattle_ui::axum_router;
-/// # let admin_panel = todo!();
 ///
 /// fn get_user(headers: &HeaderMap) -> Result<String, StatusCode> {
 ///     headers
@@ -34,8 +31,6 @@ use std::sync::Arc;
 ///         .map(|user| user.to_string())
 ///         .ok_or(StatusCode::UNAUTHORIZED)
 /// }
-///
-/// let router = axum_router(admin_panel, get_user);
 /// ```
 #[async_trait]
 pub trait ExtractModifiedBy: Send + Sync + 'static {
