@@ -1,6 +1,6 @@
 [package]
 name = "feattle-ui"
-version = "3.0.1"
+version = "4.0.0"
 authors = ["Guilherme Souza <sitegui@sitegui.com.br>"]
 edition = "2021"
 rust-version = "1.82.0"
@@ -14,6 +14,7 @@ categories = ["config", "data-structures", "development-tools", "web-programming
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+async-trait = "0.1.88"
 axum = { version = "0.8.1", optional = true, default-features = false, features = ["form", "json"] }
 chrono = { version = "0.4.15", features = ["serde"] }
 feattle-core = { path = "../feattle-core", version = "3.0.0" }

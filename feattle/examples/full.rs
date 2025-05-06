@@ -92,7 +92,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
     tokio::spawn(run_warp_server(panel.clone(), ([127, 0, 0, 1], 3030)));
 
     // Serve the admin panel with `axum`
-    let router = axum_router(panel);
+    let router = axum_router(panel, "admin");
     let listener = TcpListener::bind(("127.0.0.1", 3031)).await?;
     tokio::spawn(axum::serve(listener, router.into_make_service()).into_future());
 
