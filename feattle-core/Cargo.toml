@@ -22,9 +22,13 @@ serde = { version = "1.0.115", features = ["derive"] }
 serde_json = "1.0.57"
 thiserror = "2.0.12"
 uuid = { version = "1.1.2", optional = true }
+indexmap = { version = "2.0.0", optional = true }
 
 [dev-dependencies]
 tokio = { version = "1.4.0", features = ["macros", "rt"] }
 
 [package.metadata.docs.rs]
 all-features = true
+
+[features]
+default = ["uuid", "indexmap"]
