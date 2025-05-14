@@ -4,12 +4,15 @@ use crate::json_reading::{
     FromJsonError,
 };
 use crate::{SerializedFormatKind, StringFormatKind};
+#[cfg(feature = "indexmap")]
+use indexmap::{IndexMap, IndexSet};
 use serde_json::{Number, Value};
 use std::collections::{BTreeMap, BTreeSet};
 use std::convert::TryInto;
 use std::error::Error;
 use std::fmt::Debug;
 use std::fmt::Write;
+use std::hash::Hash;
 use std::str::FromStr;
 #[cfg(feature = "uuid")]
 use uuid::Uuid;
@@ -221,72 +224,97 @@ impl<T: FeattleValue> FeattleValue for Vec<T> {
     }
 }
 
+macro_rules! feature_value_set_impl {
+    ($SetStruct:ident) => {
+        fn as_json(&self) -> Value {
+            Value::Array(self.iter().map(|item| item.as_json()).collect())
+        }
+        fn overview(&self) -> String {
+            format!("[{}]", iter_overview(self.iter()))
+        }
+        fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
+            let mut set = $SetStruct::new();
+            for item in extract_array(value)? {
+                set.insert(T::try_from_json(item)?);
+            }
+            Ok(set)
+        }
+        fn serialized_format() -> SerializedFormat {
+            let f = T::serialized_format();
+            SerializedFormat {
+                kind: SerializedFormatKind::Set(Box::new(f.kind)),
+                tag: format!("{}<{}>", stringify!($SetStruct), f.tag),
+            }
+        }
+    };
+}
+
+#[cfg(feature = "indexmap")]
+impl<T: FeattleValue + Ord + Hash> FeattleValue for IndexSet<T> {
+    feature_value_set_impl!(IndexSet);
+}
+
 impl<T: FeattleValue + Ord> FeattleValue for BTreeSet<T> {
-    fn as_json(&self) -> Value {
-        Value::Array(self.iter().map(|item| item.as_json()).collect())
-    }
-    fn overview(&self) -> String {
-        format!("[{}]", iter_overview(self.iter()))
-    }
-    fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
-        let mut set = BTreeSet::new();
-        for item in extract_array(value)? {
-            set.insert(T::try_from_json(item)?);
+    feature_value_set_impl!(BTreeSet);
+}
+
+macro_rules! feature_value_map_impl {
+    ($MapStruct:ident) => {
+        fn as_json(&self) -> Value {
+            Value::Object(
+                self.iter()
+                    .map(|(item_key, item_value)| (item_key.to_string(), item_value.as_json()))
+                    .collect(),
+            )
         }
-        Ok(set)
-    }
-    fn serialized_format() -> SerializedFormat {
-        let f = T::serialized_format();
-        SerializedFormat {
-            kind: SerializedFormatKind::Set(Box::new(f.kind)),
-            tag: format!("Set<{}>", f.tag),
+        fn overview(&self) -> String {
+            // Group by value
+            let mut keys_by_value: $MapStruct<_, Vec<_>> = $MapStruct::new();
+            for (key, value) in self {
+                keys_by_value.entry(value.overview()).or_default().push(key);
+            }
+
+            let overview_by_value: Vec<_> = keys_by_value
+                .into_iter()
+                .map(|(value, keys)| format!("{}: {}", iter_overview(keys.into_iter()), value))
+                .collect();
+
+            format!("{{{}}}", iter_overview(overview_by_value.iter()))
         }
-    }
+        fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
+            let mut map = $MapStruct::new();
+            for (item_key, item_value) in extract_object(value)? {
+                map.insert(
+                    item_key.parse().map_err(FromJsonError::parsing)?,
+                    V::try_from_json(item_value)?,
+                );
+            }
+            Ok(map)
+        }
+        fn serialized_format() -> SerializedFormat {
+            let fk = K::serialized_string_format();
+            let fv = V::serialized_format();
+            SerializedFormat {
+                kind: SerializedFormatKind::Map(fk.kind, Box::new(fv.kind)),
+                tag: format!("{}<{}, {}>", stringify!($MapStruct), fk.tag, fv.tag),
+            }
+        }
+    };
 }
 
 impl<K: FeattleStringValue + Ord, V: FeattleValue> FeattleValue for BTreeMap<K, V>
 where
     <K as FromStr>::Err: Error + Send + Sync + 'static,
 {
-    fn as_json(&self) -> Value {
-        Value::Object(
-            self.iter()
-                .map(|(item_key, item_value)| (item_key.to_string(), item_value.as_json()))
-                .collect(),
-        )
-    }
-    fn overview(&self) -> String {
-        // Group by value
-        let mut keys_by_value: BTreeMap<_, Vec<_>> = BTreeMap::new();
-        for (key, value) in self {
-            keys_by_value.entry(value.overview()).or_default().push(key);
-        }
+    feature_value_map_impl!(BTreeMap);
+}
 
-        let overview_by_value: Vec<_> = keys_by_value
-            .into_iter()
-            .map(|(value, keys)| format!("{}: {}", iter_overview(keys.into_iter()), value))
-            .collect();
-
-        format!("{{{}}}", iter_overview(overview_by_value.iter()))
-    }
-    fn try_from_json(value: &Value) -> Result<Self, FromJsonError> {
-        let mut map = BTreeMap::new();
-        for (item_key, item_value) in extract_object(value)? {
-            map.insert(
-                item_key.parse().map_err(FromJsonError::parsing)?,
-                V::try_from_json(item_value)?,
-            );
-        }
-        Ok(map)
-    }
-    fn serialized_format() -> SerializedFormat {
-        let fk = K::serialized_string_format();
-        let fv = V::serialized_format();
-        SerializedFormat {
-            kind: SerializedFormatKind::Map(fk.kind, Box::new(fv.kind)),
-            tag: format!("Map<{}, {}>", fk.tag, fv.tag),
-        }
-    }
+#[cfg(feature = "indexmap")]
+impl<K: FeattleStringValue + Ord + Hash, V: FeattleValue> FeattleValue for IndexMap<K, V>
+where
+    <K as FromStr>::Err: Error + Send + Sync + 'static,
+{
+    feature_value_map_impl!(IndexMap);
 }
 
 impl<T: FeattleValue> FeattleValue for Option<T> {
@@ -477,7 +505,7 @@ mod tests {
     }
 
     #[test]
-    fn set() {
+    fn btree_set() {
         converts(
             json!([3, 14, 15]),
             vec![3, 14, 15].into_iter().collect::<BTreeSet<i32>>(),
@@ -497,7 +525,7 @@ mod tests {
     }
 
     #[test]
-    fn map() {
+    fn btree_map() {
         converts(
             json!({
                 "a": 1,
@@ -520,6 +548,59 @@ mod tests {
         }));
         assert_eq!(
             BTreeMap::<String, i32>::serialized_format().kind,
+            SerializedFormatKind::Map(
+                StringFormatKind::Any,
+                Box::new(SerializedFormatKind::Integer)
+            )
+        )
+    }
+
+    #[test]
+    #[cfg(feature = "indexmap")]
+    fn index_set() {
+        converts(
+            json!([3, 14, 15]),
+            vec![3, 14, 15].into_iter().collect::<IndexSet<i32>>(),
+            "[3, 14, 15]",
+        );
+        converts2(
+            json!([1, 2, 4, 4, 3]),
+            vec![1, 2, 4, 3].into_iter().collect::<IndexSet<i32>>(),
+            "[1, 2, 4, ... 1 more]",
+            json!([1, 2, 4, 3]),
+        );
+        fails::<IndexSet<i32>>(json!([3, 14, "15", 92]));
+        assert_eq!(
+            IndexSet::<i32>::serialized_format().kind,
+            SerializedFormatKind::Set(Box::new(SerializedFormatKind::Integer))
+        )
+    }
+
+    #[test]
+    #[cfg(feature = "indexmap")]
+    fn index_map() {
+        converts(
+            json!({
+                "a": 1,
+                "b": 2,
+                "x": 1,
+            }),
+            vec![
+                ("a".to_owned(), 1),
+                ("b".to_owned(), 2),
+                ("x".to_owned(), 1),
+            ]
+            .into_iter()
+            .collect::<IndexMap<_, _>>(),
+            "{a, x: 1, b: 2}",
+        );
+        fails::<IndexMap<String, String>>(json!({
+            "a": "1",
+            "b": 2,
+            "x": 1,
+        }));
+        assert_eq!(
+            IndexMap::<String, i32>::serialized_format().kind,
             SerializedFormatKind::Map(
                 StringFormatKind::Any,
                 Box::new(SerializedFormatKind::Integer)
